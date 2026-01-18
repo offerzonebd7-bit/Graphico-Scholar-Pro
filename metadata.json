@@ -1,0 +1,7 @@
+{
+  "name": "Graphico Scholar",
+  "description": "An advanced Academic AI Mentor for Classical Islamic Sciences, specializing in Tafsir, Hadith, Fiqh, Balaghat, Mantiq, and Philosophy. Powered by Graphico Global.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
