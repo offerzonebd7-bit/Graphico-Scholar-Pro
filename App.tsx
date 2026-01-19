@@ -8,17 +8,26 @@ import { decode, decodeAudioData, createPcmBlob } from './services/audioUtils';
 import { Message } from './types';
 
 const SYSTEM_INSTRUCTION = `
-আপনার নাম Graphico Scholar। আপনি Graphico Global দ্বারা নির্মিত একজন অত্যন্ত মার্জিত এবং পেশাদার একাডেমিক এআই মেন্টর। 
-আপনার দক্ষতা ক্লাসিক্যাল ইসলামি বিজ্ঞানের ক্ষেত্রগুলোতে, বিশেষ করে কুরআন তাফসির (Quranic Exegesis), হাদিস বিজ্ঞান (Usool al-Hadith), ফিকহ (Jurisprudence), আরবি অলঙ্কারশাস্ত্র (Balaghat), যুক্তিবিদ্যা (Mantiq) এবং দর্শন (Falsafa)।
+আপনার নাম "গ্রাফিকো স্কলার", যা "গ্রাফিকো গ্লোবাল"-এর একটি বিশেষ শিক্ষা ও গবেষণা এআই। আপনার লক্ষ্য হলো পৃথিবীর সকল জ্ঞানপিপাসু শিক্ষার্থীর জন্য একজন "পরম বন্ধু" হিসেবে কাজ করা। 
 
-মূল নিয়মাবলী:
-১. সর্বদা নিজেকে Graphico Scholar হিসেবে পরিচয় দিন এবং উল্লেখ করুন যে আপনি Graphico Global দ্বারা তৈরি।
-২. ভাষা: সর্বদা বাংলায় কথা বলুন। টোন হবে একাডেমিক, সম্মানজনক এবং অত্যন্ত মার্জিত।
-৩. আরবি বিষয়বস্তু: কুরআনের আয়াত, হাদিসের উদ্ধৃতি এবং গুরুত্বপূর্ণ আরবি পরিভাষা সর্বদা মূল আরবি স্ক্রিপ্টে লিখুন। এরপর এর বাংলা অনুবাদ এবং বিস্তারিত একাডেমিক ব্যাখ্যা দিন।
-৪. ইখতিলাফ (পার্থক্য): ফিকহী বা তাত্ত্বিক প্রশ্নের ক্ষেত্রে চার ইমামের (ইমাম আবু হানিফা, ইমাম মালিক, ইমাম শাফেয়ী, ইমাম আহমাদ ইবনে হাম্বল) এবং তাদের প্রধান শিষ্যদের (যেমন ইমাম আবু ইউসুফ, ইমাম মুহাম্মদ) অবস্থান বিস্তারিত আলোচনা করুন। তাদের মতপার্থক্য কেন হয়েছে তা 'উসুল' বা মূলনীতির আলোকে ব্যাখ্যা করুন।
-৫. রেফারেন্স: প্রতিটির দাবির জন্য নির্দিষ্ট রেফারেন্স প্রদান করুন। যেমন- কুরআন: [সুরা নাম: আয়াত নম্বর], হাদিস: [কিতাবের নাম: নম্বর/অধ্যায়], ফিকহ: [ধ্রুপদী কিতাবের নাম]।
-৬. বিষয়ের গভীরতা: বালাগাতের ক্ষেত্রে 'মাআনি', 'বায়ান', 'বাদি' ইত্যাদি টেকনিক্যাল টার্ম ব্যবহার করুন। মানতিকের ক্ষেত্রে 'ইসাঘুজি'র আলোকে 'কিয়াস' বা সিলোজিসম ব্যাখ্যা করুন।
-৭. শুরুতে অভিবাদন: সেশন শুরু করার সময় বলুন: "আসসালামু আলাইকুম! আমি Graphico Scholar, Graphico Global দ্বারা তৈরি আপনার উন্নত একাডেমিক রিসার্চ অ্যাসিস্ট্যান্ট। আপনার আজকের গবেষণার বিষয়বস্তু কী?"
+কঠোরভাবে পালনীয় নিয়মাবলী:
+১. জ্ঞানের পরিধি (Academic Mastery): আপনি পৃথিবীর সকল প্রকার বৈধ এবং একাডেমিক বিষয়ে বিশেষজ্ঞ। এর মধ্যে রয়েছে:
+   - ইসলামি শরীয়াহ: কুরআন, হাদিস, ফিকহ এবং ইতিহাস।
+   - বিজ্ঞান ও প্রযুক্তি: পদার্থবিজ্ঞান (Physics), রসায়ন (Chemistry), জীববিজ্ঞান (Biology), গণিত (Math) এবং মহাকাশ বিজ্ঞান।
+   - মানবিক শাখা: সাহিত্য, দর্শন, অর্থনীতি এবং সমাজবিজ্ঞান।
+   আপনি যেকোনো জটিল বৈজ্ঞানিক সূত্র বা গাণিতিক সমস্যার সহজ ব্যাখ্যা দিতে সক্ষম।
+
+২. সীমাবদ্ধতা (Strict Filtering): শিক্ষা, গবেষণা এবং জ্ঞানচর্চার বাইরের কোনো আজেবাজে, অনৈতিক, অশ্লীল বা সময় নষ্টকারী প্রশ্নের উত্তর আপনি দিবেন না। কেউ এ ধরনের কথা বললে তাকে বলবেন: "গ্রাফিকো গ্লোবাল শুধুমাত্র জ্ঞান ও শিক্ষা সংক্রান্ত কাজে আপনাকে সহায়তা করে।"
+
+৩. ভাষা ও শৈলী: সর্বদা প্রাঞ্জল বাংলায় কথা বলুন। টোন হবে একাডেমিক এবং অত্যন্ত মার্জিত। 
+
+৪. ধারাবাহিকতা (Contextual Intelligence): ব্যবহারকারীর আগের আলোচনা মনে রাখুন। যদি তিনি কোনো নির্দিষ্ট বিষয় নিয়ে কথা বলেন এবং পরে সংক্ষিপ্ত প্রশ্ন করেন, তবে আগের প্রসঙ্গের আলোকে উত্তর দিন।
+
+৫. চিহ্ন বর্জন: উত্তরের ভেতরে অতিরিক্ত হ্যাশ (#), স্টার (*) বা ড্যাশ (-) ব্যবহার করবেন না। স্বাভাবিক প্যারাগ্রাফ এবং প্রয়োজনীয় ক্ষেত্রে নম্বর লিস্ট ব্যবহার করুন। একদম ক্লিন প্রফেশনাল টেক্সট নিশ্চিত করুন।
+
+৬. ইতি টানা: প্রতিটি উত্তরের একদম শেষে একটি নতুন লাইনে লিখুন: "ধন্যবাদান্তে Graphico Global"।
+
+৭. সেশন শুরু: সেশনের শুরুতে একবারই অভিবাদন জানান।
 `;
 
 const App: React.FC = () => {
@@ -27,7 +36,7 @@ const App: React.FC = () => {
     {
       id: 'greeting',
       role: 'model',
-      text: "আসসালামু আলাইকুম! আমি Graphico Scholar, Graphico Global দ্বারা তৈরি আপনার উন্নত একাডেমিক রিসার্চ অ্যাসিস্ট্যান্ট। আপনার আজকের গবেষণার বিষয়বস্তু কী?",
+      text: "আসসালামু আলাইকুম! গ্রাফিকো গ্লোবাল-এ আপনাকে স্বাগতম। আপনার শিক্ষা বা গবেষণা সংক্রান্ত যেকোনো বিষয়ে আমি আপনাকে কীভাবে সাহায্য করতে পারি?",
       timestamp: Date.now()
     }
   ]);
@@ -92,7 +101,6 @@ const App: React.FC = () => {
         config: {
           responseModalities: [Modality.AUDIO],
           speechConfig: { 
-            // 'Charon' is a deep male voice suitable for a scholar
             voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Charon' } } 
           },
           systemInstruction: SYSTEM_INSTRUCTION,
@@ -180,7 +188,7 @@ const App: React.FC = () => {
     if (e) e.preventDefault();
     if ((!textInput.trim() && !selectedImage) || isSendingText) return;
 
-    const userMessage = textInput.trim() || (selectedImage ? "এই ছবিটি বিশ্লেষণ করুন এবং এর একাডেমিক ব্যাখ্যা দিন।" : "");
+    const userMessage = textInput.trim() || (selectedImage ? "এই ছবিটি বিশ্লেষণ করুন।" : "");
     const imageToUpload = selectedImage;
     const mimeToUpload = imageMimeType;
     
@@ -200,6 +208,12 @@ const App: React.FC = () => {
 
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      // Construct history context for current user message
+      const history = messages.slice(-6).map(m => ({
+        role: m.role === 'model' ? 'model' : 'user',
+        parts: [{ text: m.text }]
+      }));
+
       const parts: any[] = [{ text: userMessage }];
       if (imageToUpload) {
         parts.push({
@@ -212,7 +226,7 @@ const App: React.FC = () => {
 
       const response = await ai.models.generateContent({
         model: imageToUpload ? 'gemini-3-flash-preview' : 'gemini-3-pro-preview',
-        contents: [{ role: 'user', parts: parts }],
+        contents: [...history, { role: 'user', parts: parts }],
         config: { systemInstruction: SYSTEM_INSTRUCTION },
       });
 
@@ -233,14 +247,14 @@ const App: React.FC = () => {
         <aside className="w-full md:w-80 flex flex-col gap-4">
           <div className="bg-white p-5 rounded-2xl shadow-sm border border-emerald-100">
             <h2 className="flex items-center gap-2 text-emerald-900 font-bold mb-3 border-b pb-2">
-              <BookOpenText size={18} /> গবেষণার ক্ষেত্রসমূহ
+              <BookOpenText size={18} /> বিশেষজ্ঞ বিষয়সমূহ
             </h2>
-            <ul className="space-y-2 text-sm text-emerald-800">
-              <li className="flex items-center gap-2"><span className="w-2 h-2 bg-amber-500 rounded-full"></span> তাফসীর ও উসুলুল তাফসীর</li>
-              <li className="flex items-center gap-2"><span className="w-2 h-2 bg-amber-500 rounded-full"></span> হাদিস ও উসুলুল হাদিস</li>
-              <li className="flex items-center gap-2"><span className="w-2 h-2 bg-amber-500 rounded-full"></span> ফিকহ ও ফিকহী ইখতিলাফ</li>
-              <li className="flex items-center gap-2"><span className="w-2 h-2 bg-amber-500 rounded-full"></span> বালাগাত (অলঙ্কারশাস্ত্র)</li>
-              <li className="flex items-center gap-2"><span className="w-2 h-2 bg-amber-500 rounded-full"></span> মানতিক ও ফালসাফা</li>
+            <ul className="space-y-2 text-sm text-emerald-800 font-medium">
+              <li className="flex items-center gap-2"><span className="w-2 h-2 bg-amber-500 rounded-full"></span> ইসলামি শরীয়াহ ও ইতিহাস</li>
+              <li className="flex items-center gap-2"><span className="w-2 h-2 bg-amber-500 rounded-full"></span> বিজ্ঞান ও প্রযুক্তি (ফিজিক্স, ম্যাথ)</li>
+              <li className="flex items-center gap-2"><span className="w-2 h-2 bg-amber-500 rounded-full"></span> মহাকাশ বিজ্ঞান ও উদ্ভাবন</li>
+              <li className="flex items-center gap-2"><span className="w-2 h-2 bg-amber-500 rounded-full"></span> সাহিত্য, দর্শন ও মানবিক শাখা</li>
+              <li className="flex items-center gap-2"><span className="w-2 h-2 bg-amber-500 rounded-full"></span> জটিল একাডেমিক সমস্যার সমাধান</li>
             </ul>
           </div>
           <div className="bg-emerald-50 p-5 rounded-2xl border border-emerald-100 flex-grow">
@@ -248,13 +262,13 @@ const App: React.FC = () => {
               <Info size={18} /> নির্দেশিকা
             </h2>
             <p className="text-sm text-emerald-800 leading-relaxed mb-4">
-              Graphico Scholar এখন ছবি চিনে উত্তর দিতে সক্ষম। কিতাবের কোনো অংশের ছবি তুলে আপলোড করুন এবং একাডেমিক ব্যাখ্যা গ্রহণ করুন। ভয়েস মোডে কথা বললে পুরুষ কণ্ঠে উত্তর পাবেন।
+              Graphico Scholar আপনার একাডেমিক "পরম বন্ধু"। যেকোনো শিক্ষা বা গবেষণা সংক্রান্ত বিষয়ে প্রশ্ন করুন। অনৈতিক বা অপ্রাসঙ্গিক প্রশ্ন এড়িয়ে চলুন।
             </p>
-            <div className="bg-white p-3 rounded-lg border border-emerald-200">
-              <p className="text-xs text-emerald-600 font-semibold mb-1">Status:</p>
+            <div className="bg-white p-3 rounded-lg border border-emerald-200 shadow-sm">
+              <p className="text-xs text-emerald-600 font-semibold mb-1">সিস্টেম স্ট্যাটাস:</p>
               <div className="flex items-center gap-2">
                 <div className={`w-3 h-3 rounded-full ${isActive ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
-                <span className="text-xs font-medium">{isActive ? 'ভয়েস মোড সক্রিয়' : 'ভয়েস মোড নিষ্ক্রিয়'}</span>
+                <span className="text-xs font-medium">{isActive ? 'ভয়েস সেশন সক্রিয়' : 'সেশন অপেক্ষমাণ'}</span>
               </div>
             </div>
           </div>
@@ -352,10 +366,10 @@ const App: React.FC = () => {
               </div>
               <div className="hidden sm:flex gap-2">
                 <div className="flex items-center gap-1 text-[8px] uppercase font-bold text-emerald-500 tracking-widest bg-white px-3 py-1 rounded-full border border-emerald-100 shadow-sm">
-                  Male Voice (Charon)
+                  Scholarly Intelligence
                 </div>
                 <div className="flex items-center gap-1 text-[8px] uppercase font-bold text-amber-500 tracking-widest bg-white px-3 py-1 rounded-full border border-amber-100 shadow-sm">
-                  Academic Research
+                  Academic Standard
                 </div>
               </div>
             </div>
@@ -365,7 +379,7 @@ const App: React.FC = () => {
         </section>
       </main>
       <footer className="p-2 text-center text-[10px] text-emerald-800 opacity-60 font-medium">
-        © {new Date().getFullYear()} Graphico Global. ক্লাসিক্যাল ইসলামি বিজ্ঞানের ডিজিটাল রিসার্চ মেন্টর।
+        © {new Date().getFullYear()} Graphico Global.
       </footer>
     </div>
   );
