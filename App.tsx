@@ -7,6 +7,11 @@ import TranscriptItem from './components/TranscriptItem';
 import { decode, decodeAudioData, createPcmBlob } from './services/audioUtils';
 import { Message } from './types';
 
+// Safety Guard: Vercel-এ process.env এর কারণে ক্র্যাশ হওয়া বন্ধ করতে এই অংশটি জরুরি।
+if (typeof (window as any).process === 'undefined') {
+  (window as any).process = { env: { API_KEY: '' } };
+}
+
 const SYSTEM_INSTRUCTION = `
 আপনার নাম "গ্রাফিকো স্কলার", যা "গ্রাফিকো গ্লোবাল"-এর একটি প্রফেশনাল একাডেমিক এআই। 
 আপনার ব্যক্তিত্ব হবে একজন অত্যন্ত বিজ্ঞ ও গম্ভীর গবেষকের (Academic Researcher) মতো।
@@ -47,10 +52,15 @@ const App: React.FC = () => {
   const scriptProcessorRef = useRef<ScriptProcessorNode | null>(null);
   const transcriptScrollRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to bottom
+  // এপিআই কি পাওয়ার নিরাপদ উপায়
+  const API_KEY = process.env.API_KEY;
+
   useEffect(() => {
     if (transcriptScrollRef.current) {
-      transcriptScrollRef.current.scrollTop = transcriptScrollRef.current.scrollHeight;
+      transcriptScrollRef.current.scrollTo({
+        top: transcriptScrollRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
     }
   }, [messages, currentInput, currentOutput, isSendingText]);
 
@@ -81,15 +91,14 @@ const App: React.FC = () => {
   }, [stopAllAudio]);
 
   const handleStart = async () => {
-    const apiKey = process.env.API_KEY;
-    if (!apiKey) {
-      setError("API Key missing. Please check your deployment settings.");
+    if (!API_KEY) {
+      setError("API Key কনফিগার করা হয়নি।");
       return;
     }
     try {
       setIsConnecting(true);
       setError(null);
-      const ai = new GoogleGenAI({ apiKey });
+      const ai = new GoogleGenAI({ apiKey: API_KEY });
       inputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
       outputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -131,12 +140,6 @@ const App: React.FC = () => {
               sourcesRef.current.add(source);
             }
             if (message.serverContent?.interrupted) stopAllAudio();
-            if (message.serverContent?.turnComplete) {
-              setMessages(prev => [...prev, 
-                { id: `u-${Date.now()}`, role: 'user', text: "(ভয়েস মেসেজ)", timestamp: Date.now() },
-                { id: `m-${Date.now()}`, role: 'model', text: "স্কলার উত্তর দিয়েছেন...", timestamp: Date.now() }
-              ]);
-            }
           },
           onerror: () => { setError("ভয়েস সেশনে সমস্যা হয়েছে।"); handleStop(); },
           onclose: () => setIsActive(false)
@@ -144,18 +147,17 @@ const App: React.FC = () => {
       });
       sessionRef.current = await sessionPromise;
     } catch (err) {
-      setError("মাইক্রোফোন সংযোগ করা যাচ্ছে না।");
+      setError("মাইক্রোফোন পারমিশন চেক করুন।");
       setIsConnecting(false);
     }
   };
 
   const handleSendText = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    const apiKey = process.env.API_KEY;
-    if ((!textInput.trim() && !selectedImage) || isSendingText || !apiKey) return;
+    if ((!textInput.trim() && !selectedImage) || isSendingText || !API_KEY) return;
 
-    const userMessage = textInput.trim() || (selectedImage ? "এই ছবিটি বিশ্লেষণ করুন।" : "");
-    const imgBase64 = selectedImage;
+    const userMsg = textInput.trim() || (selectedImage ? "এই ছবিটি বিশ্লেষণ করুন।" : "");
+    const imgData = selectedImage;
     const imgMime = imageMimeType;
     
     setTextInput('');
@@ -166,22 +168,22 @@ const App: React.FC = () => {
     setMessages(prev => [...prev, { 
       id: `u-${Date.now()}`, 
       role: 'user', 
-      text: userMessage, 
-      imageUrl: imgBase64 ? `data:${imgMime};base64,${imgBase64}` : undefined,
+      text: userMsg, 
+      imageUrl: imgData ? `data:${imgMime};base64,${imgData}` : undefined,
       timestamp: Date.now() 
     }]);
 
     try {
-      const ai = new GoogleGenAI({ apiKey });
+      const ai = new GoogleGenAI({ apiKey: API_KEY });
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
         contents: [...messages.slice(-6).map(m => ({ role: m.role, parts: [{ text: m.text }] })), 
-                  { role: 'user', parts: imgBase64 ? [{ text: userMessage }, { inlineData: { data: imgBase64, mimeType: imgMime } }] : [{ text: userMessage }] }],
+                  { role: 'user', parts: imgData ? [{ text: userMsg }, { inlineData: { data: imgData, mimeType: imgMime } }] : [{ text: userMsg }] }],
         config: { systemInstruction: SYSTEM_INSTRUCTION },
       });
       setMessages(prev => [...prev, { id: `m-${Date.now()}`, role: 'model', text: response.text || "উত্তর পাওয়া যায়নি।", timestamp: Date.now() }]);
     } catch (err) {
-      setError("নেটওয়ার্ক ত্রুটি। পুনরায় চেষ্টা করুন।");
+      setError("নেটওয়ার্ক সমস্যা। পুনরায় চেষ্টা করুন।");
     } finally {
       setIsSendingText(false);
     }
@@ -191,64 +193,54 @@ const App: React.FC = () => {
     <div className="flex flex-col h-[100dvh] bg-[#fdfaf5] overflow-hidden">
       <Header />
       
-      <main className="flex-grow flex flex-col md:flex-row max-w-7xl mx-auto w-full overflow-hidden p-2 md:p-4 gap-4">
-        {/* Sidebar - Desktop Only */}
+      <main className="flex-1 flex flex-col md:flex-row max-w-7xl mx-auto w-full overflow-hidden p-1.5 md:p-4 gap-2 md:gap-4">
+        {/* Sidebar - Desktop */}
         <aside className="hidden lg:flex w-64 flex-col gap-4">
           <div className="bg-emerald-900 text-white p-5 rounded-3xl shadow-lg border-b-4 border-amber-500">
             <h3 className="font-bold text-amber-400 mb-2 flex items-center gap-2">
-              <BookOpen size={18} /> গবেষক ড্যাশবোর্ড
+              <BookOpen size={18} /> গবেষণার ক্ষেত্র
             </h3>
             <p className="text-xs text-emerald-100 leading-relaxed">
-              আমি আপনার একাডেমিক সহায়তায় নিয়োজিত। দলীলভিত্তিক উত্তরের জন্য আপনার প্রশ্নটি নির্ভুলভাবে পেশ করুন।
+              আমি আপনার একাডেমিক রিসার্চ অ্যাসিস্ট্যান্ট। দলীলভিত্তিক আলোচনার জন্য আপনার প্রশ্নটি পেশ করুন।
             </p>
-          </div>
-          <div className="bg-white p-5 rounded-3xl border border-emerald-100 flex-grow shadow-sm">
-            <h3 className="font-bold text-emerald-900 mb-2 flex items-center gap-2 text-sm">
-              <Info size={16} /> স্ট্যাটাস
-            </h3>
-            <div className={`text-xs p-2 rounded-xl flex items-center gap-2 ${isActive ? 'bg-green-50 text-green-700' : 'bg-slate-50 text-slate-500'}`}>
-              <div className={`w-2 h-2 rounded-full ${isActive ? 'bg-green-500 animate-pulse' : 'bg-slate-300'}`}></div>
-              {isActive ? 'ভয়েস মোড সক্রিয়' : 'ভয়েস মোড অফ'}
-            </div>
           </div>
         </aside>
 
-        {/* Chat Area - Optimized for Mobile */}
-        <section className="flex-grow flex flex-col bg-white rounded-2xl md:rounded-[2.5rem] shadow-xl border border-emerald-50 overflow-hidden relative">
-          <div ref={transcriptScrollRef} className="flex-grow overflow-y-auto p-4 md:p-6 custom-scrollbar bg-[url('https://www.transparenttextures.com/patterns/paper-fibers.png')]">
+        {/* Chat Area - Mobile Optimized */}
+        <section className="flex-1 flex flex-col bg-white rounded-xl md:rounded-[2rem] shadow-xl border border-emerald-50 overflow-hidden">
+          <div ref={transcriptScrollRef} className="flex-1 overflow-y-auto p-3 md:p-6 custom-scrollbar bg-[url('https://www.transparenttextures.com/patterns/paper-fibers.png')] overscroll-contain">
             {messages.map((m) => (
               <TranscriptItem key={m.id} role={m.role} text={m.text} imageUrl={m.imageUrl} />
             ))}
             {isSendingText && (
-              <div className="flex justify-start mb-6">
+              <div className="flex justify-start mb-4">
                 <div className="bg-white p-3 rounded-2xl border-l-4 border-amber-500 shadow-sm flex items-center gap-2">
                   <Loader2 className="animate-spin text-amber-600" size={16} />
-                  <span className="text-slate-700 italic text-sm font-bold">স্কলার বিশ্লেষণ করছেন...</span>
+                  <span className="text-slate-700 italic text-xs font-bold">স্কলার বিশ্লেষণ করছেন...</span>
                 </div>
               </div>
             )}
           </div>
 
-          <div className="p-3 md:p-4 bg-emerald-50/40 border-t border-emerald-100">
-            {/* Mobile Actions Container */}
-            <div className="flex flex-col gap-3 max-w-4xl mx-auto">
+          <div className="p-2 md:p-4 bg-emerald-50/30 border-t border-emerald-100">
+            <div className="flex flex-col gap-2 max-w-4xl mx-auto">
               {selectedImage && (
-                <div className="relative w-20 h-20 rounded-xl border-2 border-white shadow-lg overflow-hidden ring-2 ring-emerald-500">
+                <div className="relative w-16 h-16 rounded-lg border border-emerald-500 shadow-md overflow-hidden">
                   <img src={`data:${imageMimeType};base64,${selectedImage}`} alt="Preview" className="w-full h-full object-cover" />
-                  <button onClick={() => setSelectedImage(null)} className="absolute top-0 right-0 bg-red-500 text-white p-1 rounded-bl-xl shadow-md">
-                    <X size={12} />
+                  <button onClick={() => setSelectedImage(null)} className="absolute top-0 right-0 bg-red-500 text-white p-0.5 rounded-bl-lg shadow-md">
+                    <X size={10} />
                   </button>
                 </div>
               )}
 
-              <form onSubmit={handleSendText} className="flex gap-2 bg-white p-1.5 rounded-2xl shadow-md border border-emerald-100 items-center">
+              <form onSubmit={handleSendText} className="flex gap-1.5 bg-white p-1 rounded-xl shadow-md border border-emerald-100 items-center">
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isActive || isSendingText}
-                  className="text-emerald-700 p-2 md:p-3 rounded-xl hover:bg-emerald-50 disabled:opacity-30"
+                  className="text-emerald-700 p-2 md:p-3 hover:bg-emerald-50 disabled:opacity-30 transition-colors"
                 >
-                  <ImagePlus size={22} />
+                  <ImagePlus size={20} />
                 </button>
                 <input 
                   type="file" 
@@ -269,39 +261,39 @@ const App: React.FC = () => {
                   type="text"
                   value={textInput}
                   onChange={(e) => setTextInput(e.target.value)}
-                  placeholder="আপনার একাডেমিক প্রশ্নটি লিখুন..."
+                  placeholder="আপনার প্রশ্নটি এখানে লিখুন..."
                   disabled={isActive || isSendingText}
-                  className="flex-grow px-1 py-2 outline-none text-emerald-950 font-medium text-sm md:text-base bg-transparent"
+                  className="flex-1 px-1 py-2 outline-none text-emerald-950 font-medium text-sm md:text-base bg-transparent"
                 />
                 <button
                   type="submit"
                   disabled={(!textInput.trim() && !selectedImage) || isActive || isSendingText}
-                  className="bg-emerald-800 text-white p-3 rounded-xl hover:bg-emerald-900 disabled:bg-slate-300 transition-all shadow-lg"
+                  className="bg-emerald-800 text-white p-2.5 md:p-3 rounded-lg hover:bg-emerald-900 disabled:bg-slate-300 transition-all shadow-md"
                 >
-                  <Send size={18} />
+                  <Send size={16} />
                 </button>
               </form>
 
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between px-1">
                 <button
                   onClick={isActive ? handleStop : handleStart}
                   disabled={isConnecting || isSendingText}
-                  className={`flex items-center gap-3 px-6 py-2.5 rounded-full shadow-lg transition-all active:scale-95 ${isActive ? 'bg-red-600 text-white ring-4 ring-red-100' : 'bg-emerald-800 text-white ring-4 ring-emerald-50'}`}
+                  className={`flex items-center gap-2 px-5 py-2 rounded-full shadow-lg transition-all active:scale-95 ${isActive ? 'bg-red-600 text-white' : 'bg-emerald-800 text-white'}`}
                 >
-                  {isActive ? <MicOff size={18} /> : <Mic size={18} />}
-                  <span className="text-xs font-black uppercase tracking-widest">
+                  {isActive ? <MicOff size={16} /> : <Mic size={16} />}
+                  <span className="text-[10px] font-black uppercase tracking-widest">
                     {isActive ? 'ভয়েস বন্ধ' : 'ভয়েস মোড'}
                   </span>
                 </button>
-                <div className="text-[9px] text-emerald-900/40 font-bold uppercase tracking-[0.2em]">
-                  Scholar v5.0 Stable
+                <div className="text-[8px] text-emerald-900/40 font-bold uppercase tracking-widest">
+                  Graphico Scholar v5.1
                 </div>
               </div>
             </div>
 
             {error && (
-              <div className="mt-2 p-2 bg-red-50 text-red-600 rounded-lg text-[10px] font-bold text-center flex items-center justify-center gap-1 border border-red-100">
-                <AlertCircle size={12} /> {error}
+              <div className="mt-1.5 p-1.5 bg-red-50 text-red-600 rounded-lg text-[9px] font-bold text-center border border-red-100 flex items-center justify-center gap-1">
+                <AlertCircle size={10} /> {error}
               </div>
             )}
           </div>
