@@ -1,27 +1,22 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { GoogleGenAI, LiveServerMessage, Modality } from '@google/genai';
-import { Mic, MicOff, MessageSquare, BookOpen, Info, Send, Loader2, ImagePlus, X, AlertTriangle } from 'lucide-react';
+import { Mic, MicOff, BookOpen, Info, Send, Loader2, ImagePlus, X, AlertCircle } from 'lucide-react';
 import Header from './components/Header';
 import TranscriptItem from './components/TranscriptItem';
 import { decode, decodeAudioData, createPcmBlob } from './services/audioUtils';
 import { Message } from './types';
 
-// Safe environment variable check
-const SAFE_API_KEY = typeof process !== 'undefined' ? process.env.API_KEY : undefined;
-
 const SYSTEM_INSTRUCTION = `
-আপনার নাম "গ্রাফিকো স্কলার", যা "গ্রাফিকো গ্লোবাল"-এর একটি বিশেষ শিক্ষা ও গবেষণা এআই। আপনার লক্ষ্য হলো একজন গম্ভীর ও দক্ষ গবেষকের মতো তথ্য প্রদান করা।
+আপনার নাম "গ্রাফিকো স্কলার", যা "গ্রাফিকো গ্লোবাল"-এর একটি প্রফেশনাল একাডেমিক এআই। 
+আপনার ব্যক্তিত্ব হবে একজন অত্যন্ত বিজ্ঞ ও গম্ভীর গবেষকের (Academic Researcher) মতো।
 
-একাডেমিক মাস্টারী ও ফরমেটিং নির্দেশনাবলী:
-১. ব্যক্তিত্ব: আপনার উত্তরের ধরন হবে একজন বিজ্ঞ গবেষকের মতো—গম্ভীর, তথ্যবহুল এবং অত্যন্ত গোছানো। অপ্রয়োজনীয় ভূমিকা বা আবেগ বর্জন করুন।
-২. আরবি ও অনুবাদ: যখনই কোনো আয়াত, হাদিস বা আরবি শব্দ লিখবেন, তা অবশ্যই মূল আরবি হরফে লিখবেন। এরপর সেটির বাংলা অনুবাদ এবং একাডেমিক ব্যাখ্যা দেবেন।
-৩. প্রফেশনাল ফরমেটিং: 
-   - উত্তরের ভেতর কোনো হ্যাশট্যাগ (#) ব্যবহার করবেন না। 
-   - গুরুত্বপূর্ণ অংশগুলোকে বোল্ড (**text**) করুন। 
-   - বিশেষ উদ্ধৃতি বা মূল পয়েন্টের জন্য ব্লককোট (> text) ব্যবহার করুন।
-৪. সীমাবদ্ধতা: শুধুমাত্র একাডেমিক ও শিক্ষা সংক্রান্ত বিষয়ে সহায়তা করুন। অনৈতিক কিছু জিজ্ঞেস করলে বলবেন: "গ্রাফিকো গ্লোবাল শুধুমাত্র জ্ঞান ও শিক্ষা সংক্রান্ত কাজে আপনাকে সহায়তা করে।"
-৫. ইতি টানা: প্রতিটি উত্তরের একদম শেষে একটি নতুন লাইনে লিখুন: "ধন্যবাদান্তে Graphico Global"।
+নির্দেশনাবলী:
+১. ফরমেটিং: কোনো হ্যাশট্যাগ (#) ব্যবহার করবেন না। গুরুত্বপূর্ণ তথ্য **বোল্ড** করুন এবং বিশেষ উদ্ধৃতি বা দলীল > ব্লককোট আকারে লিখুন।
+২. আরবি: প্রতিটি আরবি আয়াত বা হাদিস মূল আরবি স্ক্রিপ্টে বড় করে লিখুন, তারপর বাংলা অনুবাদ ও একাডেমিক ব্যাখ্যা দিন।
+৩. প্রাসঙ্গিকতা: শুধুমাত্র শিক্ষা, গবেষণা, বিজ্ঞান এবং ধ্রুপদী জ্ঞান (Classical Sciences) নিয়ে আলোচনা করুন। অপ্রাসঙ্গিক কথায় সময় নষ্ট করবেন না।
+৪. দ্রুততা: সংক্ষিপ্ত কিন্তু সারগর্ভ উত্তর দিন।
+৫. সমাপ্তি: উত্তরের শেষে নতুন লাইনে লিখুন: "ধন্যবাদান্তে Graphico Global"।
 `;
 
 const App: React.FC = () => {
@@ -30,7 +25,7 @@ const App: React.FC = () => {
     {
       id: 'greeting',
       role: 'model',
-      text: "আসসালামু আলাইকুম! গ্রাফিকো গ্লোবাল-এ আপনাকে স্বাগতম। আপনার শিক্ষা বা গবেষণা সংক্রান্ত যেকোনো বিষয়ে আমি আপনাকে কীভাবে সাহায্য করতে পারি?",
+      text: "আসসালামু আলাইকুম। আমি গ্রাফিকো স্কলার। আপনার গবেষণা বা শিক্ষা সংক্রান্ত যেকোনো জিজ্ঞাসা পেশ করতে পারেন।",
       timestamp: Date.now()
     }
   ]);
@@ -52,14 +47,20 @@ const App: React.FC = () => {
   const scriptProcessorRef = useRef<ScriptProcessorNode | null>(null);
   const transcriptScrollRef = useRef<HTMLDivElement>(null);
 
+  // Auto-scroll to bottom
   useEffect(() => {
     if (transcriptScrollRef.current) {
-      transcriptScrollRef.current.scrollTo({
-        top: transcriptScrollRef.current.scrollHeight,
-        behavior: 'smooth'
-      });
+      transcriptScrollRef.current.scrollTop = transcriptScrollRef.current.scrollHeight;
     }
   }, [messages, currentInput, currentOutput, isSendingText]);
+
+  const stopAllAudio = useCallback(() => {
+    sourcesRef.current.forEach(source => {
+      try { source.stop(); } catch (e) {}
+    });
+    sourcesRef.current.clear();
+    nextStartTimeRef.current = 0;
+  }, []);
 
   const handleStop = useCallback(() => {
     setIsActive(false);
@@ -76,20 +77,19 @@ const App: React.FC = () => {
       inputAudioContextRef.current.close();
       inputAudioContextRef.current = null;
     }
-    sourcesRef.current.forEach(source => { try { source.stop(); } catch(e) {} });
-    sourcesRef.current.clear();
-    nextStartTimeRef.current = 0;
-  }, []);
+    stopAllAudio();
+  }, [stopAllAudio]);
 
   const handleStart = async () => {
-    if (!SAFE_API_KEY) {
-      setError("এপিআই কি (API Key) পাওয়া যায়নি।");
+    const apiKey = process.env.API_KEY;
+    if (!apiKey) {
+      setError("API Key missing. Please check your deployment settings.");
       return;
     }
     try {
       setIsConnecting(true);
       setError(null);
-      const ai = new GoogleGenAI({ apiKey: SAFE_API_KEY });
+      const ai = new GoogleGenAI({ apiKey });
       inputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
       outputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -130,31 +130,32 @@ const App: React.FC = () => {
               nextStartTimeRef.current += buffer.duration;
               sourcesRef.current.add(source);
             }
+            if (message.serverContent?.interrupted) stopAllAudio();
             if (message.serverContent?.turnComplete) {
-              setMessages(prev => [
-                ...prev,
+              setMessages(prev => [...prev, 
                 { id: `u-${Date.now()}`, role: 'user', text: "(ভয়েস মেসেজ)", timestamp: Date.now() },
-                { id: `m-${Date.now()}`, role: 'model', text: "স্কলার উত্তর দিচ্ছেন...", timestamp: Date.now() }
+                { id: `m-${Date.now()}`, role: 'model', text: "স্কলার উত্তর দিয়েছেন...", timestamp: Date.now() }
               ]);
             }
           },
-          onerror: (e) => { setError("সেশন ত্রুটি। পুনরায় শুরু করুন।"); handleStop(); },
+          onerror: () => { setError("ভয়েস সেশনে সমস্যা হয়েছে।"); handleStop(); },
           onclose: () => setIsActive(false)
         }
       });
       sessionRef.current = await sessionPromise;
     } catch (err) {
-      setError("মাইক্রোফোন সংযোগে ব্যর্থ।");
+      setError("মাইক্রোফোন সংযোগ করা যাচ্ছে না।");
       setIsConnecting(false);
     }
   };
 
   const handleSendText = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if ((!textInput.trim() && !selectedImage) || isSendingText || !SAFE_API_KEY) return;
+    const apiKey = process.env.API_KEY;
+    if ((!textInput.trim() && !selectedImage) || isSendingText || !apiKey) return;
 
     const userMessage = textInput.trim() || (selectedImage ? "এই ছবিটি বিশ্লেষণ করুন।" : "");
-    const imgData = selectedImage;
+    const imgBase64 = selectedImage;
     const imgMime = imageMimeType;
     
     setTextInput('');
@@ -166,115 +167,88 @@ const App: React.FC = () => {
       id: `u-${Date.now()}`, 
       role: 'user', 
       text: userMessage, 
-      imageUrl: imgData ? `data:${imgMime};base64,${imgData}` : undefined,
+      imageUrl: imgBase64 ? `data:${imgMime};base64,${imgBase64}` : undefined,
       timestamp: Date.now() 
     }]);
 
     try {
-      const ai = new GoogleGenAI({ apiKey: SAFE_API_KEY });
-      const history = messages.slice(-8).map(m => ({
-        role: m.role === 'model' ? 'model' : 'user',
-        parts: [{ text: m.text }]
-      }));
-
-      const parts: any[] = [{ text: userMessage }];
-      if (imgData) parts.push({ inlineData: { data: imgData, mimeType: imgMime } });
-
+      const ai = new GoogleGenAI({ apiKey });
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
-        contents: [...history, { role: 'user', parts }],
+        contents: [...messages.slice(-6).map(m => ({ role: m.role, parts: [{ text: m.text }] })), 
+                  { role: 'user', parts: imgBase64 ? [{ text: userMessage }, { inlineData: { data: imgBase64, mimeType: imgMime } }] : [{ text: userMessage }] }],
         config: { systemInstruction: SYSTEM_INSTRUCTION },
       });
-
-      const modelText = response.text || "দুঃখিত, কোনো উত্তর পাওয়া যায়নি।";
-      setMessages(prev => [...prev, { id: `m-${Date.now()}`, role: 'model', text: modelText, timestamp: Date.now() }]);
+      setMessages(prev => [...prev, { id: `m-${Date.now()}`, role: 'model', text: response.text || "উত্তর পাওয়া যায়নি।", timestamp: Date.now() }]);
     } catch (err) {
-      setError("বার্তা পাঠাতে সমস্যা হয়েছে। পুনরায় চেষ্টা করুন।");
+      setError("নেটওয়ার্ক ত্রুটি। পুনরায় চেষ্টা করুন।");
     } finally {
       setIsSendingText(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#fdfaf5]">
-      {!SAFE_API_KEY && (
-        <div className="fixed inset-0 bg-white/95 z-[999] flex flex-col items-center justify-center p-8 text-center">
-          <AlertTriangle size={64} className="text-amber-600 mb-4 animate-pulse" />
-          <h1 className="text-2xl font-bold text-emerald-900 mb-2">এপিআই কি অনুপস্থিত</h1>
-          <p className="text-slate-600 max-w-sm">Graphico Scholar ব্যবহারের জন্য একটি বৈধ এপিআই কি প্রয়োজন।</p>
-        </div>
-      )}
-
+    <div className="flex flex-col h-[100dvh] bg-[#fdfaf5] overflow-hidden">
       <Header />
       
-      <main className="flex-grow flex flex-col md:flex-row max-w-7xl mx-auto w-full p-4 gap-4 overflow-hidden relative">
-        {/* Sidebar Info */}
-        <aside className="hidden lg:flex w-72 flex-col gap-4">
-          <div className="bg-emerald-900 text-white p-6 rounded-3xl shadow-lg">
+      <main className="flex-grow flex flex-col md:flex-row max-w-7xl mx-auto w-full overflow-hidden p-2 md:p-4 gap-4">
+        {/* Sidebar - Desktop Only */}
+        <aside className="hidden lg:flex w-64 flex-col gap-4">
+          <div className="bg-emerald-900 text-white p-5 rounded-3xl shadow-lg border-b-4 border-amber-500">
             <h3 className="font-bold text-amber-400 mb-2 flex items-center gap-2">
-              <BookOpen size={18} /> গবেষক প্যানেল
+              <BookOpen size={18} /> গবেষক ড্যাশবোর্ড
             </h3>
-            <p className="text-sm text-emerald-100 leading-relaxed">
-              আমি আপনার প্রতিটি প্রশ্নের গবেষণালব্ধ উত্তর দিতে প্রস্তুত। তথ্য ও দলীলভিত্তিক আলোচনার জন্য আপনার প্রশ্নটি পেশ করুন।
+            <p className="text-xs text-emerald-100 leading-relaxed">
+              আমি আপনার একাডেমিক সহায়তায় নিয়োজিত। দলীলভিত্তিক উত্তরের জন্য আপনার প্রশ্নটি নির্ভুলভাবে পেশ করুন।
             </p>
           </div>
-          <div className="bg-white p-6 rounded-3xl border border-emerald-100 shadow-sm flex-grow">
-            <h3 className="font-bold text-emerald-900 mb-3 flex items-center gap-2 text-sm">
-              <Info size={16} /> সিস্টেম স্ট্যাটাস
+          <div className="bg-white p-5 rounded-3xl border border-emerald-100 flex-grow shadow-sm">
+            <h3 className="font-bold text-emerald-900 mb-2 flex items-center gap-2 text-sm">
+              <Info size={16} /> স্ট্যাটাস
             </h3>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-slate-500">মডেল স্পিড:</span>
-                <span className="text-emerald-600 font-bold uppercase tracking-wider">Flash (Max)</span>
-              </div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-slate-500">ভয়েস সেশন:</span>
-                <span className={`font-bold ${isActive ? 'text-green-500' : 'text-slate-400'}`}>
-                  {isActive ? 'সক্রিয়' : 'নিষ্ক্রিয়'}
-                </span>
-              </div>
+            <div className={`text-xs p-2 rounded-xl flex items-center gap-2 ${isActive ? 'bg-green-50 text-green-700' : 'bg-slate-50 text-slate-500'}`}>
+              <div className={`w-2 h-2 rounded-full ${isActive ? 'bg-green-500 animate-pulse' : 'bg-slate-300'}`}></div>
+              {isActive ? 'ভয়েস মোড সক্রিয়' : 'ভয়েস মোড অফ'}
             </div>
           </div>
         </aside>
 
-        {/* Interaction Area */}
-        <section className="flex-grow flex flex-col bg-white rounded-[2rem] shadow-2xl border border-emerald-50 overflow-hidden">
-          <div ref={transcriptScrollRef} className="flex-grow overflow-y-auto p-6 custom-scrollbar bg-[url('https://www.transparenttextures.com/patterns/paper-fibers.png')]">
+        {/* Chat Area - Optimized for Mobile */}
+        <section className="flex-grow flex flex-col bg-white rounded-2xl md:rounded-[2.5rem] shadow-xl border border-emerald-50 overflow-hidden relative">
+          <div ref={transcriptScrollRef} className="flex-grow overflow-y-auto p-4 md:p-6 custom-scrollbar bg-[url('https://www.transparenttextures.com/patterns/paper-fibers.png')]">
             {messages.map((m) => (
               <TranscriptItem key={m.id} role={m.role} text={m.text} imageUrl={m.imageUrl} />
             ))}
             {isSendingText && (
               <div className="flex justify-start mb-6">
-                <div className="bg-white p-4 rounded-2xl border-l-4 border-amber-600 shadow-sm flex items-center gap-3">
-                  <Loader2 className="animate-spin text-amber-600" size={18} />
-                  <span className="text-slate-800 italic text-sm font-medium">স্কলার বিশ্লেষণ করছেন...</span>
+                <div className="bg-white p-3 rounded-2xl border-l-4 border-amber-500 shadow-sm flex items-center gap-2">
+                  <Loader2 className="animate-spin text-amber-600" size={16} />
+                  <span className="text-slate-700 italic text-sm font-bold">স্কলার বিশ্লেষণ করছেন...</span>
                 </div>
               </div>
             )}
           </div>
 
-          <div className="p-4 bg-emerald-50/50 flex flex-col gap-4">
-            {selectedImage && (
-              <div className="relative w-28 h-28 ml-2 rounded-2xl border-4 border-white shadow-xl overflow-hidden group">
-                <img src={`data:${imageMimeType};base64,${selectedImage}`} alt="Preview" className="w-full h-full object-cover" />
-                <button 
-                  onClick={() => setSelectedImage(null)}
-                  className="absolute top-1 right-1 bg-red-600 text-white p-1 rounded-full shadow-lg"
-                >
-                  <X size={12} />
-                </button>
-              </div>
-            )}
+          <div className="p-3 md:p-4 bg-emerald-50/40 border-t border-emerald-100">
+            {/* Mobile Actions Container */}
+            <div className="flex flex-col gap-3 max-w-4xl mx-auto">
+              {selectedImage && (
+                <div className="relative w-20 h-20 rounded-xl border-2 border-white shadow-lg overflow-hidden ring-2 ring-emerald-500">
+                  <img src={`data:${imageMimeType};base64,${selectedImage}`} alt="Preview" className="w-full h-full object-cover" />
+                  <button onClick={() => setSelectedImage(null)} className="absolute top-0 right-0 bg-red-500 text-white p-1 rounded-bl-xl shadow-md">
+                    <X size={12} />
+                  </button>
+                </div>
+              )}
 
-            <div className="flex flex-col gap-3">
-              <form onSubmit={handleSendText} className="flex gap-2 bg-white p-2 rounded-2xl shadow-lg border border-emerald-100 items-center">
+              <form onSubmit={handleSendText} className="flex gap-2 bg-white p-1.5 rounded-2xl shadow-md border border-emerald-100 items-center">
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isActive || isSendingText}
-                  className="text-emerald-700 hover:bg-emerald-50 p-3 rounded-xl transition-all disabled:opacity-30"
+                  className="text-emerald-700 p-2 md:p-3 rounded-xl hover:bg-emerald-50 disabled:opacity-30"
                 >
-                  <ImagePlus size={24} />
+                  <ImagePlus size={22} />
                 </button>
                 <input 
                   type="file" 
@@ -295,48 +269,44 @@ const App: React.FC = () => {
                   type="text"
                   value={textInput}
                   onChange={(e) => setTextInput(e.target.value)}
-                  placeholder="আপনার গবেষণার প্রশ্নটি এখানে পেশ করুন..."
+                  placeholder="আপনার একাডেমিক প্রশ্নটি লিখুন..."
                   disabled={isActive || isSendingText}
-                  className="flex-grow px-3 py-3 outline-none text-emerald-950 font-medium placeholder:text-slate-400 bg-transparent"
+                  className="flex-grow px-1 py-2 outline-none text-emerald-950 font-medium text-sm md:text-base bg-transparent"
                 />
                 <button
                   type="submit"
                   disabled={(!textInput.trim() && !selectedImage) || isActive || isSendingText}
-                  className="bg-emerald-800 hover:bg-emerald-900 text-white p-4 rounded-xl transition-all disabled:bg-slate-300 shadow-md"
+                  className="bg-emerald-800 text-white p-3 rounded-xl hover:bg-emerald-900 disabled:bg-slate-300 transition-all shadow-lg"
                 >
-                  <Send size={20} />
+                  <Send size={18} />
                 </button>
               </form>
 
-              <div className="flex items-center justify-between px-2">
+              <div className="flex items-center justify-between">
                 <button
                   onClick={isActive ? handleStop : handleStart}
                   disabled={isConnecting || isSendingText}
-                  className={`flex items-center gap-3 px-6 py-3 rounded-full shadow-lg transition-all transform active:scale-95 ${isActive ? 'bg-red-600 text-white ring-4 ring-red-100' : 'bg-emerald-800 text-white ring-4 ring-emerald-50'}`}
+                  className={`flex items-center gap-3 px-6 py-2.5 rounded-full shadow-lg transition-all active:scale-95 ${isActive ? 'bg-red-600 text-white ring-4 ring-red-100' : 'bg-emerald-800 text-white ring-4 ring-emerald-50'}`}
                 >
-                  {isActive ? <MicOff size={20} /> : <Mic size={20} />}
-                  <span className="text-sm font-bold uppercase tracking-widest">
+                  {isActive ? <MicOff size={18} /> : <Mic size={18} />}
+                  <span className="text-xs font-black uppercase tracking-widest">
                     {isActive ? 'ভয়েস বন্ধ' : 'ভয়েস মোড'}
                   </span>
                 </button>
-                <div className="text-[10px] text-emerald-800/60 font-black uppercase tracking-[0.3em] flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${isActive ? 'bg-green-500 animate-ping' : 'bg-slate-300'}`}></div>
-                  Scholar AI v4.0 Stable
+                <div className="text-[9px] text-emerald-900/40 font-bold uppercase tracking-[0.2em]">
+                  Scholar v5.0 Stable
                 </div>
               </div>
             </div>
 
             {error && (
-              <div className="mx-2 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs font-bold text-center flex items-center justify-center gap-2">
-                <AlertTriangle size={14} /> {error}
+              <div className="mt-2 p-2 bg-red-50 text-red-600 rounded-lg text-[10px] font-bold text-center flex items-center justify-center gap-1 border border-red-100">
+                <AlertCircle size={12} /> {error}
               </div>
             )}
           </div>
         </section>
       </main>
-      <footer className="p-3 text-center text-[10px] text-emerald-900/40 font-bold uppercase tracking-[0.4em]">
-        © {new Date().getFullYear()} Graphico Global - Academic Excellence
-      </footer>
     </div>
   );
 };
