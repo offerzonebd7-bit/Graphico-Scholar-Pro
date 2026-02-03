@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { GoogleGenAI, LiveServerMessage, Modality } from '@google/genai';
-import { Mic, MicOff, MessageSquare, Headphones, BookOpenText, Info, Send, Loader2, ImagePlus, X } from 'lucide-react';
+import { Mic, MicOff, MessageSquare, Headphones, BookOpenText, Info, Send, Loader2, ImagePlus, X, AlertCircle } from 'lucide-react';
 import Header from './components/Header';
 import TranscriptItem from './components/TranscriptItem';
 import { decode, decodeAudioData, createPcmBlob } from './services/audioUtils';
@@ -10,17 +10,16 @@ import { Message } from './types';
 const SYSTEM_INSTRUCTION = `
 আপনার নাম "গ্রাফিকো স্কলার", যা "গ্রাফিকো গ্লোবাল"-এর একটি বিশেষ শিক্ষা ও গবেষণা এআই। আপনার লক্ষ্য হলো একজন গম্ভীর ও দক্ষ গবেষকের মতো তথ্য প্রদান করা।
 
-গবেষণালব্ধ ও ফরমেটিং নির্দেশনাবলী:
-১. ব্যক্তিত্ব: আপনার উত্তরের ধরন হবে একজন বিজ্ঞ গবেষকের মতো—গম্ভীর, তথ্যবহুল এবং অত্যন্ত গোছানো। অপ্রয়োজনীয় কথা বা আবেগ বর্জন করুন।
+একাডেমিক মাস্টারী ও ফরমেটিং নির্দেশনাবলী:
+১. ব্যক্তিত্ব: আপনার উত্তরের ধরন হবে একজন বিজ্ঞ গবেষকের মতো—গম্ভীর, তথ্যবহুল এবং অত্যন্ত গোছানো। অপ্রয়োজনীয় ভূমিকা বা আবেগ বর্জন করুন।
 ২. আরবি ও অনুবাদ: যখনই কোনো আয়াত, হাদিস বা আরবি শব্দ লিখবেন, তা অবশ্যই মূল আরবি হরফে লিখবেন। এরপর সেটির বাংলা অনুবাদ এবং একাডেমিক ব্যাখ্যা দেবেন।
 ৩. প্রফেশনাল ফরমেটিং: 
-   - উত্তরের ভেতর কোনো হ্যাশট্যাগ (#) বা অপ্রয়োজনীয় চিহ্ন ব্যবহার করবেন না। 
+   - উত্তরের ভেতর কোনো হ্যাশট্যাগ (#) ব্যবহার করবেন না। 
    - গুরুত্বপূর্ণ অংশগুলোকে বোল্ড (**text**) করুন। 
    - বিশেষ উদ্ধৃতি বা মূল পয়েন্টের জন্য ব্লককোট (> text) ব্যবহার করুন।
-৪. প্রাসঙ্গিকতা: ব্যবহারকারী যতটুকু জানতে চাইবেন, ঠিক ততটুকুই গভীরভাবে ব্যাখ্যা করুন। আগের আলোচনার প্রসঙ্গ (Context) সর্বদা মনে রাখুন।
-৫. সীমাবদ্ধতা: শুধুমাত্র একাডেমিক ও শিক্ষা সংক্রান্ত বিষয়ে সহায়তা করুন। অনৈতিক কিছু জিজ্ঞেস করলে বলবেন: "গ্রাফিকো গ্লোবাল শুধুমাত্র জ্ঞান ও শিক্ষা সংক্রান্ত কাজে আপনাকে সহায়তা করে।"
-৬. সেশন শুরু: শুরুতে একবার সালাম দিয়ে অভিনন্দন জানান।
-৭. ইতি টানা: প্রতিটি উত্তরের একদম শেষে একটি নতুন লাইনে লিখুন: "ধন্যবাদান্তে Graphico Global"।
+৪. সীমাবদ্ধতা (Strict Filtering): শিক্ষা, গবেষণা এবং জ্ঞানচর্চার বাইরের কোনো আজেবাজে, অনৈতিক, অশ্লীল বা সময় নষ্টকারী প্রশ্নের উত্তর দিবেন না। কেউ এ ধরনের কথা বললে তাকে বলবেন: "গ্রাফিকো গ্লোবাল শুধুমাত্র জ্ঞান ও শিক্ষা সংক্রান্ত কাজে আপনাকে সহায়তা করে।"
+৫. প্রাসঙ্গিকতা: ব্যবহারকারী যতটুকু জানতে চাইবেন, ঠিক ততটুকুই গভীরভাবে ব্যাখ্যা করুন। আগের প্রসঙ্গের কথা মাথায় রেখে উত্তর দিন।
+৬. ইতি টানা: প্রতিটি উত্তরের একদম শেষে একটি নতুন লাইনে লিখুন: "ধন্যবাদান্তে Graphico Global"।
 `;
 
 const App: React.FC = () => {
@@ -72,14 +71,16 @@ const App: React.FC = () => {
       inputAudioContextRef.current.close();
       inputAudioContextRef.current = null;
     }
-    sourcesRef.current.forEach(source => source.stop());
+    sourcesRef.current.forEach(source => {
+        try { source.stop(); } catch(e) {}
+    });
     sourcesRef.current.clear();
     nextStartTimeRef.current = 0;
   }, []);
 
   const handleStart = async () => {
     if (!process.env.API_KEY) {
-      setError("API Key not found.");
+      setError("এপিআই কি (API Key) পাওয়া যায়নি। দয়া করে সেটিংস পরীক্ষা করুন।");
       return;
     }
     try {
@@ -110,7 +111,9 @@ const App: React.FC = () => {
             scriptProcessor.onaudioprocess = (e) => {
               const inputData = e.inputBuffer.getChannelData(0);
               const pcmBlob = createPcmBlob(inputData);
-              sessionPromise.then((session) => { session.sendRealtimeInput({ media: pcmBlob }); });
+              sessionPromise.then((session) => { 
+                if (session) session.sendRealtimeInput({ media: pcmBlob }); 
+              });
             };
             source.connect(scriptProcessor);
             scriptProcessor.connect(inputAudioContextRef.current!.destination);
@@ -130,7 +133,7 @@ const App: React.FC = () => {
               sourcesRef.current.add(source);
             }
             if (message.serverContent?.interrupted) {
-              sourcesRef.current.forEach(s => s.stop());
+              sourcesRef.current.forEach(s => { try { s.stop(); } catch(e) {} });
               sourcesRef.current.clear();
               nextStartTimeRef.current = 0;
             }
@@ -143,7 +146,7 @@ const App: React.FC = () => {
             if (message.serverContent?.turnComplete) {
               setMessages(prev => [
                 ...prev,
-                { id: `u-${Date.now()}`, role: 'user', text: currentInput, timestamp: Date.now() },
+                { id: `u-${Date.now()}`, role: 'user', text: currentInput || "(ভয়েস মেসেজ)", timestamp: Date.now() },
                 { id: `m-${Date.now()}`, role: 'model', text: currentOutput, timestamp: Date.now() }
               ]);
               setCurrentInput('');
@@ -151,6 +154,7 @@ const App: React.FC = () => {
             }
           },
           onerror: (e) => {
+            console.error("Live session error:", e);
             setError("সেশন চলাকালীন একটি ত্রুটি ঘটেছে। পুনরায় চেষ্টা করুন।");
             handleStop();
           },
@@ -159,7 +163,7 @@ const App: React.FC = () => {
       });
       sessionRef.current = await sessionPromise;
     } catch (err) {
-      setError("সেশন সংযোগ স্থাপনে সমস্যা হয়েছে।");
+      setError("সেশন সংযোগ স্থাপনে সমস্যা হয়েছে। মাইক্রোফোন পারমিশন চেক করুন।");
       setIsConnecting(false);
     }
   };
@@ -200,7 +204,7 @@ const App: React.FC = () => {
     }]);
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
       const history = messages.slice(-10).map(m => ({
         role: m.role === 'model' ? 'model' : 'user',
         parts: [{ text: m.text }]
@@ -216,8 +220,9 @@ const App: React.FC = () => {
         });
       }
 
+      // Using Flash model for maximum speed as requested
       const response = await ai.models.generateContent({
-        model: imageToUpload ? 'gemini-3-flash-preview' : 'gemini-3-pro-preview',
+        model: 'gemini-3-flash-preview',
         contents: [...history, { role: 'user', parts: parts }],
         config: { systemInstruction: SYSTEM_INSTRUCTION },
       });
@@ -225,16 +230,25 @@ const App: React.FC = () => {
       const modelText = response.text || "দুঃখিত, কোনো উত্তর পাওয়া যায়নি।";
       setMessages(prev => [...prev, { id: `m-text-${Date.now()}`, role: 'model', text: modelText, timestamp: Date.now() }]);
     } catch (err) {
-      setError("বার্তা পাঠাতে সমস্যা হয়েছে। পুনরায় চেষ্টা করুন।");
+      setError("বার্তা পাঠাতে সমস্যা হয়েছে। ইন্টারনেট সংযোগ চেক করুন।");
+      console.error(err);
     } finally {
       setIsSendingText(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#fdfaf1]">
+    <div className="min-h-screen flex flex-col bg-[#fcf9f2]">
+      {!process.env.API_KEY && (
+        <div className="fixed inset-0 bg-white/90 backdrop-blur-md z-[100] flex flex-col items-center justify-center p-6 text-center">
+            <AlertCircle size={64} className="text-red-500 mb-4 animate-bounce" />
+            <h1 className="text-3xl font-bold text-slate-900 mb-2">API Key অনুপস্থিত</h1>
+            <p className="text-slate-600 max-w-md">Graphico Scholar চালানোর জন্য একটি ভ্যালিড API Key প্রয়োজন। দয়া করে ডেভেলপার টিমের সাথে যোগাযোগ করুন।</p>
+        </div>
+      )}
+
       <Header />
-      <main className="flex-grow flex flex-col md:flex-row max-w-7xl mx-auto w-full p-4 gap-4 overflow-hidden">
+      <main className="flex-grow flex flex-col md:flex-row max-w-7xl mx-auto w-full p-4 gap-4 overflow-hidden relative">
         {/* Sidebar */}
         <aside className="w-full md:w-80 flex flex-col gap-4">
           <div className="bg-white p-5 rounded-2xl shadow-sm border border-emerald-100">
@@ -242,10 +256,10 @@ const App: React.FC = () => {
               <BookOpenText size={18} /> গবেষণার ক্ষেত্রসমূহ
             </h2>
             <ul className="space-y-2 text-sm text-emerald-800 font-medium">
-              <li className="flex items-center gap-2"><span className="w-2 h-2 bg-amber-500 rounded-full"></span> ইসলামি শরীয়াহ ও ইতিহাস</li>
-              <li className="flex items-center gap-2"><span className="w-2 h-2 bg-amber-500 rounded-full"></span> বিজ্ঞান ও প্রযুক্তি (ফিজিক্স, ম্যাথ)</li>
-              <li className="flex items-center gap-2"><span className="w-2 h-2 bg-amber-500 rounded-full"></span> মহাকাশ বিজ্ঞান ও উদ্ভাবন</li>
-              <li className="flex items-center gap-2"><span className="w-2 h-2 bg-amber-500 rounded-full"></span> সাহিত্য, দর্শন ও মানবিক শাখা</li>
+              <li className="flex items-center gap-2"><span className="w-2 h-2 bg-amber-500 rounded-full"></span> শরীয়াহ ও ফিকহ শাস্ত্র</li>
+              <li className="flex items-center gap-2"><span className="w-2 h-2 bg-amber-500 rounded-full"></span> পদার্থ ও রসায়ন বিজ্ঞান</li>
+              <li className="flex items-center gap-2"><span className="w-2 h-2 bg-amber-500 rounded-full"></span> গাণিতিক ও মহাকাশ গবেষণা</li>
+              <li className="flex items-center gap-2"><span className="w-2 h-2 bg-amber-500 rounded-full"></span> সাহিত্য ও ধ্রুপদী দর্শন</li>
             </ul>
           </div>
           <div className="bg-emerald-50 p-5 rounded-2xl border border-emerald-100 flex-grow">
@@ -253,13 +267,13 @@ const App: React.FC = () => {
               <Info size={18} /> নির্দেশিকা
             </h2>
             <p className="text-sm text-emerald-800 leading-relaxed mb-4">
-              Graphico Scholar একজন গম্ভীর গবেষকের ন্যায় নির্ভুল ও তথ্যবহুল উত্তর প্রদান করে। ক্লিন ও প্রফেশনাল একাডেমিক সহায়তার জন্য প্রশ্নটি টাইপ করুন।
+              Graphico Scholar এখন <strong>Gemini 3 Flash</strong> ব্যবহার করছে, যা আপনাকে মুহূর্তেই উত্তর দেবে।
             </p>
-            <div className="bg-white p-3 rounded-lg border border-emerald-200 shadow-sm">
+            <div className="bg-white p-3 rounded-xl border border-emerald-200 shadow-sm">
               <p className="text-xs text-emerald-600 font-semibold mb-1">সিস্টেম স্ট্যাটাস:</p>
               <div className="flex items-center gap-2">
                 <div className={`w-3 h-3 rounded-full ${isActive ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
-                <span className="text-xs font-medium">{isActive ? 'ভয়েস সেশন সক্রিয়' : 'সেশন অপেক্ষমাণ'}</span>
+                <span className="text-xs font-medium">{isActive ? 'ভয়েস মোড সক্রিয়' : 'সেশন অপেক্ষমাণ'}</span>
               </div>
             </div>
           </div>
@@ -274,7 +288,7 @@ const App: React.FC = () => {
             {currentInput && (
               <div className="flex justify-end mb-6">
                 <div className="max-w-[85%] bg-emerald-700 p-4 rounded-2xl border-r-4 border-emerald-900 italic text-white opacity-80 shadow-md">
-                  <p className="text-[10px] font-bold mb-1 uppercase tracking-widest text-emerald-100">আপনার কণ্ঠস্বর...</p>
+                  <p className="text-[10px] font-bold mb-1 uppercase tracking-widest text-emerald-100">শুনছি...</p>
                   <p>{currentInput}</p>
                 </div>
               </div>
@@ -283,7 +297,7 @@ const App: React.FC = () => {
               <div className="flex justify-start mb-6 animate-pulse">
                 <div className="max-w-[85%] bg-white p-4 rounded-2xl border-l-4 border-amber-600 shadow-sm flex items-center gap-2">
                   <Loader2 className="animate-spin text-amber-600" size={16} />
-                  <span className="text-slate-900 italic font-medium">গবেষক বিশ্লেষণ করছেন...</span>
+                  <span className="text-slate-900 italic font-medium">স্কলার বিশ্লেষণ করছেন...</span>
                 </div>
               </div>
             )}
@@ -324,7 +338,7 @@ const App: React.FC = () => {
                 type="text"
                 value={textInput}
                 onChange={(e) => setTextInput(e.target.value)}
-                placeholder={selectedImage ? "ছবির বিষয়ে গবেষণামূলক প্রশ্ন লিখুন..." : "আপনার গবেষণার প্রশ্নটি এখানে লিখুন..."}
+                placeholder={selectedImage ? "ছবির বিষয়ে গবেষণামূলক প্রশ্ন লিখুন..." : "আপনার প্রশ্নটি এখানে লিখুন..."}
                 disabled={isActive || isSendingText}
                 className="flex-grow px-2 py-3 outline-none text-emerald-900 bg-transparent disabled:opacity-50 font-medium"
               />
@@ -347,22 +361,27 @@ const App: React.FC = () => {
                   {isActive ? <MicOff size={20} className="text-white" /> : <Mic size={20} className="text-white" />}
                 </button>
                 <div className="flex flex-col">
-                  <p className="text-emerald-900 font-bold text-xs">
-                    {isActive ? 'ভয়েস সেশন সক্রিয়' : 'ভয়েস সেশন শুরু'}
+                  <p className="text-emerald-900 font-bold text-xs uppercase tracking-tight">
+                    {isActive ? 'ভয়েস মোড সক্রিয়' : 'ভয়েস মোড শুরু করুন'}
                   </p>
-                  <p className="text-[9px] text-emerald-600 uppercase tracking-wider font-semibold">
-                    {isActive ? 'স্কলার মনোযোগ দিয়ে শুনছেন' : 'বাটন চেপে কথা বলুন'}
+                  <p className="text-[9px] text-emerald-600 uppercase tracking-widest font-bold">
+                    {isActive ? 'স্কলার মনোযোগ দিয়ে শুনছেন' : 'বাটন চেপে সরাসরি কথা বলুন'}
                   </p>
                 </div>
               </div>
+              <div className="hidden sm:block text-[9px] text-emerald-400 font-bold tracking-widest uppercase">
+                Academic Intelligence v3.0
+              </div>
             </div>
 
-            {error && <div className="text-red-600 bg-red-50 px-4 py-1 rounded-lg border border-red-200 text-[10px] text-center font-bold">{error}</div>}
+            {error && <div className="text-red-600 bg-red-50 px-4 py-2 rounded-xl border border-red-200 text-xs text-center font-bold flex items-center justify-center gap-2 shadow-sm">
+                <AlertCircle size={14} /> {error}
+            </div>}
           </div>
         </section>
       </main>
-      <footer className="p-2 text-center text-[10px] text-emerald-800 opacity-60 font-medium">
-        © {new Date().getFullYear()} Graphico Global.
+      <footer className="p-2 text-center text-[10px] text-emerald-800 opacity-60 font-medium uppercase tracking-widest">
+        © {new Date().getFullYear()} Graphico Global - All Knowledge is for Humanity.
       </footer>
     </div>
   );
