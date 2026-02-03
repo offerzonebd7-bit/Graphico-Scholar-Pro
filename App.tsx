@@ -1,11 +1,14 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { GoogleGenAI, LiveServerMessage, Modality } from '@google/genai';
-import { Mic, MicOff, MessageSquare, Headphones, BookOpenText, Info, Send, Loader2, ImagePlus, X, AlertCircle } from 'lucide-react';
+import { Mic, MicOff, MessageSquare, BookOpen, Info, Send, Loader2, ImagePlus, X, AlertTriangle } from 'lucide-react';
 import Header from './components/Header';
 import TranscriptItem from './components/TranscriptItem';
 import { decode, decodeAudioData, createPcmBlob } from './services/audioUtils';
 import { Message } from './types';
+
+// Safe environment variable check
+const SAFE_API_KEY = typeof process !== 'undefined' ? process.env.API_KEY : undefined;
 
 const SYSTEM_INSTRUCTION = `
 আপনার নাম "গ্রাফিকো স্কলার", যা "গ্রাফিকো গ্লোবাল"-এর একটি বিশেষ শিক্ষা ও গবেষণা এআই। আপনার লক্ষ্য হলো একজন গম্ভীর ও দক্ষ গবেষকের মতো তথ্য প্রদান করা।
@@ -17,9 +20,8 @@ const SYSTEM_INSTRUCTION = `
    - উত্তরের ভেতর কোনো হ্যাশট্যাগ (#) ব্যবহার করবেন না। 
    - গুরুত্বপূর্ণ অংশগুলোকে বোল্ড (**text**) করুন। 
    - বিশেষ উদ্ধৃতি বা মূল পয়েন্টের জন্য ব্লককোট (> text) ব্যবহার করুন।
-৪. সীমাবদ্ধতা (Strict Filtering): শিক্ষা, গবেষণা এবং জ্ঞানচর্চার বাইরের কোনো আজেবাজে, অনৈতিক, অশ্লীল বা সময় নষ্টকারী প্রশ্নের উত্তর দিবেন না। কেউ এ ধরনের কথা বললে তাকে বলবেন: "গ্রাফিকো গ্লোবাল শুধুমাত্র জ্ঞান ও শিক্ষা সংক্রান্ত কাজে আপনাকে সহায়তা করে।"
-৫. প্রাসঙ্গিকতা: ব্যবহারকারী যতটুকু জানতে চাইবেন, ঠিক ততটুকুই গভীরভাবে ব্যাখ্যা করুন। আগের প্রসঙ্গের কথা মাথায় রেখে উত্তর দিন।
-৬. ইতি টানা: প্রতিটি উত্তরের একদম শেষে একটি নতুন লাইনে লিখুন: "ধন্যবাদান্তে Graphico Global"।
+৪. সীমাবদ্ধতা: শুধুমাত্র একাডেমিক ও শিক্ষা সংক্রান্ত বিষয়ে সহায়তা করুন। অনৈতিক কিছু জিজ্ঞেস করলে বলবেন: "গ্রাফিকো গ্লোবাল শুধুমাত্র জ্ঞান ও শিক্ষা সংক্রান্ত কাজে আপনাকে সহায়তা করে।"
+৫. ইতি টানা: প্রতিটি উত্তরের একদম শেষে একটি নতুন লাইনে লিখুন: "ধন্যবাদান্তে Graphico Global"।
 `;
 
 const App: React.FC = () => {
@@ -52,7 +54,10 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (transcriptScrollRef.current) {
-      transcriptScrollRef.current.scrollTop = transcriptScrollRef.current.scrollHeight;
+      transcriptScrollRef.current.scrollTo({
+        top: transcriptScrollRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
     }
   }, [messages, currentInput, currentOutput, isSendingText]);
 
@@ -60,7 +65,7 @@ const App: React.FC = () => {
     setIsActive(false);
     setIsConnecting(false);
     if (sessionRef.current) {
-      sessionRef.current.close();
+      try { sessionRef.current.close(); } catch (e) {}
       sessionRef.current = null;
     }
     if (scriptProcessorRef.current) {
@@ -71,35 +76,30 @@ const App: React.FC = () => {
       inputAudioContextRef.current.close();
       inputAudioContextRef.current = null;
     }
-    sourcesRef.current.forEach(source => {
-        try { source.stop(); } catch(e) {}
-    });
+    sourcesRef.current.forEach(source => { try { source.stop(); } catch(e) {} });
     sourcesRef.current.clear();
     nextStartTimeRef.current = 0;
   }, []);
 
   const handleStart = async () => {
-    if (!process.env.API_KEY) {
-      setError("এপিআই কি (API Key) পাওয়া যায়নি। দয়া করে সেটিংস পরীক্ষা করুন।");
+    if (!SAFE_API_KEY) {
+      setError("এপিআই কি (API Key) পাওয়া যায়নি।");
       return;
     }
     try {
       setIsConnecting(true);
       setError(null);
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const ai = new GoogleGenAI({ apiKey: SAFE_API_KEY });
       inputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
       outputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      
       const sessionPromise = ai.live.connect({
         model: 'gemini-2.5-flash-native-audio-preview-12-2025',
         config: {
           responseModalities: [Modality.AUDIO],
-          speechConfig: { 
-            voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Charon' } } 
-          },
+          speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Charon' } } },
           systemInstruction: SYSTEM_INSTRUCTION,
-          outputAudioTranscription: {},
-          inputAudioTranscription: {},
         },
         callbacks: {
           onopen: () => {
@@ -111,9 +111,7 @@ const App: React.FC = () => {
             scriptProcessor.onaudioprocess = (e) => {
               const inputData = e.inputBuffer.getChannelData(0);
               const pcmBlob = createPcmBlob(inputData);
-              sessionPromise.then((session) => { 
-                if (session) session.sendRealtimeInput({ media: pcmBlob }); 
-              });
+              sessionPromise.then(s => s?.sendRealtimeInput({ media: pcmBlob }));
             };
             source.connect(scriptProcessor);
             scriptProcessor.connect(inputAudioContextRef.current!.destination);
@@ -132,256 +130,212 @@ const App: React.FC = () => {
               nextStartTimeRef.current += buffer.duration;
               sourcesRef.current.add(source);
             }
-            if (message.serverContent?.interrupted) {
-              sourcesRef.current.forEach(s => { try { s.stop(); } catch(e) {} });
-              sourcesRef.current.clear();
-              nextStartTimeRef.current = 0;
-            }
-            if (message.serverContent?.inputTranscription) {
-              setCurrentInput(prev => prev + message.serverContent!.inputTranscription!.text);
-            }
-            if (message.serverContent?.outputTranscription) {
-              setCurrentOutput(prev => prev + message.serverContent!.outputTranscription!.text);
-            }
             if (message.serverContent?.turnComplete) {
               setMessages(prev => [
                 ...prev,
-                { id: `u-${Date.now()}`, role: 'user', text: currentInput || "(ভয়েস মেসেজ)", timestamp: Date.now() },
-                { id: `m-${Date.now()}`, role: 'model', text: currentOutput, timestamp: Date.now() }
+                { id: `u-${Date.now()}`, role: 'user', text: "(ভয়েস মেসেজ)", timestamp: Date.now() },
+                { id: `m-${Date.now()}`, role: 'model', text: "স্কলার উত্তর দিচ্ছেন...", timestamp: Date.now() }
               ]);
-              setCurrentInput('');
-              setCurrentOutput('');
             }
           },
-          onerror: (e) => {
-            console.error("Live session error:", e);
-            setError("সেশন চলাকালীন একটি ত্রুটি ঘটেছে। পুনরায় চেষ্টা করুন।");
-            handleStop();
-          },
+          onerror: (e) => { setError("সেশন ত্রুটি। পুনরায় শুরু করুন।"); handleStop(); },
           onclose: () => setIsActive(false)
         }
       });
       sessionRef.current = await sessionPromise;
     } catch (err) {
-      setError("সেশন সংযোগ স্থাপনে সমস্যা হয়েছে। মাইক্রোফোন পারমিশন চেক করুন।");
+      setError("মাইক্রোফোন সংযোগে ব্যর্থ।");
       setIsConnecting(false);
-    }
-  };
-
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setImageMimeType(file.type);
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        const base64 = (ev.target?.result as string).split(',')[1];
-        setSelectedImage(base64);
-      };
-      reader.readAsDataURL(file);
     }
   };
 
   const handleSendText = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if ((!textInput.trim() && !selectedImage) || isSendingText) return;
+    if ((!textInput.trim() && !selectedImage) || isSendingText || !SAFE_API_KEY) return;
 
     const userMessage = textInput.trim() || (selectedImage ? "এই ছবিটি বিশ্লেষণ করুন।" : "");
-    const imageToUpload = selectedImage;
-    const mimeToUpload = imageMimeType;
+    const imgData = selectedImage;
+    const imgMime = imageMimeType;
     
     setTextInput('');
     setSelectedImage(null);
-    setError(null);
     setIsSendingText(true);
+    setError(null);
 
-    const userMsgId = `u-text-${Date.now()}`;
     setMessages(prev => [...prev, { 
-      id: userMsgId, 
+      id: `u-${Date.now()}`, 
       role: 'user', 
       text: userMessage, 
-      imageUrl: imageToUpload ? `data:${mimeToUpload};base64,${imageToUpload}` : undefined,
+      imageUrl: imgData ? `data:${imgMime};base64,${imgData}` : undefined,
       timestamp: Date.now() 
     }]);
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
-      const history = messages.slice(-10).map(m => ({
+      const ai = new GoogleGenAI({ apiKey: SAFE_API_KEY });
+      const history = messages.slice(-8).map(m => ({
         role: m.role === 'model' ? 'model' : 'user',
         parts: [{ text: m.text }]
       }));
 
       const parts: any[] = [{ text: userMessage }];
-      if (imageToUpload) {
-        parts.push({
-          inlineData: {
-            data: imageToUpload,
-            mimeType: mimeToUpload
-          }
-        });
-      }
+      if (imgData) parts.push({ inlineData: { data: imgData, mimeType: imgMime } });
 
-      // Using Flash model for maximum speed as requested
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
-        contents: [...history, { role: 'user', parts: parts }],
+        contents: [...history, { role: 'user', parts }],
         config: { systemInstruction: SYSTEM_INSTRUCTION },
       });
 
       const modelText = response.text || "দুঃখিত, কোনো উত্তর পাওয়া যায়নি।";
-      setMessages(prev => [...prev, { id: `m-text-${Date.now()}`, role: 'model', text: modelText, timestamp: Date.now() }]);
+      setMessages(prev => [...prev, { id: `m-${Date.now()}`, role: 'model', text: modelText, timestamp: Date.now() }]);
     } catch (err) {
-      setError("বার্তা পাঠাতে সমস্যা হয়েছে। ইন্টারনেট সংযোগ চেক করুন।");
-      console.error(err);
+      setError("বার্তা পাঠাতে সমস্যা হয়েছে। পুনরায় চেষ্টা করুন।");
     } finally {
       setIsSendingText(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#fcf9f2]">
-      {!process.env.API_KEY && (
-        <div className="fixed inset-0 bg-white/90 backdrop-blur-md z-[100] flex flex-col items-center justify-center p-6 text-center">
-            <AlertCircle size={64} className="text-red-500 mb-4 animate-bounce" />
-            <h1 className="text-3xl font-bold text-slate-900 mb-2">API Key অনুপস্থিত</h1>
-            <p className="text-slate-600 max-w-md">Graphico Scholar চালানোর জন্য একটি ভ্যালিড API Key প্রয়োজন। দয়া করে ডেভেলপার টিমের সাথে যোগাযোগ করুন।</p>
+    <div className="min-h-screen flex flex-col bg-[#fdfaf5]">
+      {!SAFE_API_KEY && (
+        <div className="fixed inset-0 bg-white/95 z-[999] flex flex-col items-center justify-center p-8 text-center">
+          <AlertTriangle size={64} className="text-amber-600 mb-4 animate-pulse" />
+          <h1 className="text-2xl font-bold text-emerald-900 mb-2">এপিআই কি অনুপস্থিত</h1>
+          <p className="text-slate-600 max-w-sm">Graphico Scholar ব্যবহারের জন্য একটি বৈধ এপিআই কি প্রয়োজন।</p>
         </div>
       )}
 
       <Header />
+      
       <main className="flex-grow flex flex-col md:flex-row max-w-7xl mx-auto w-full p-4 gap-4 overflow-hidden relative">
-        {/* Sidebar */}
-        <aside className="w-full md:w-80 flex flex-col gap-4">
-          <div className="bg-white p-5 rounded-2xl shadow-sm border border-emerald-100">
-            <h2 className="flex items-center gap-2 text-emerald-900 font-bold mb-3 border-b pb-2">
-              <BookOpenText size={18} /> গবেষণার ক্ষেত্রসমূহ
-            </h2>
-            <ul className="space-y-2 text-sm text-emerald-800 font-medium">
-              <li className="flex items-center gap-2"><span className="w-2 h-2 bg-amber-500 rounded-full"></span> শরীয়াহ ও ফিকহ শাস্ত্র</li>
-              <li className="flex items-center gap-2"><span className="w-2 h-2 bg-amber-500 rounded-full"></span> পদার্থ ও রসায়ন বিজ্ঞান</li>
-              <li className="flex items-center gap-2"><span className="w-2 h-2 bg-amber-500 rounded-full"></span> গাণিতিক ও মহাকাশ গবেষণা</li>
-              <li className="flex items-center gap-2"><span className="w-2 h-2 bg-amber-500 rounded-full"></span> সাহিত্য ও ধ্রুপদী দর্শন</li>
-            </ul>
-          </div>
-          <div className="bg-emerald-50 p-5 rounded-2xl border border-emerald-100 flex-grow">
-            <h2 className="flex items-center gap-2 text-emerald-900 font-bold mb-3">
-              <Info size={18} /> নির্দেশিকা
-            </h2>
-            <p className="text-sm text-emerald-800 leading-relaxed mb-4">
-              Graphico Scholar এখন <strong>Gemini 3 Flash</strong> ব্যবহার করছে, যা আপনাকে মুহূর্তেই উত্তর দেবে।
+        {/* Sidebar Info */}
+        <aside className="hidden lg:flex w-72 flex-col gap-4">
+          <div className="bg-emerald-900 text-white p-6 rounded-3xl shadow-lg">
+            <h3 className="font-bold text-amber-400 mb-2 flex items-center gap-2">
+              <BookOpen size={18} /> গবেষক প্যানেল
+            </h3>
+            <p className="text-sm text-emerald-100 leading-relaxed">
+              আমি আপনার প্রতিটি প্রশ্নের গবেষণালব্ধ উত্তর দিতে প্রস্তুত। তথ্য ও দলীলভিত্তিক আলোচনার জন্য আপনার প্রশ্নটি পেশ করুন।
             </p>
-            <div className="bg-white p-3 rounded-xl border border-emerald-200 shadow-sm">
-              <p className="text-xs text-emerald-600 font-semibold mb-1">সিস্টেম স্ট্যাটাস:</p>
-              <div className="flex items-center gap-2">
-                <div className={`w-3 h-3 rounded-full ${isActive ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
-                <span className="text-xs font-medium">{isActive ? 'ভয়েস মোড সক্রিয়' : 'সেশন অপেক্ষমাণ'}</span>
+          </div>
+          <div className="bg-white p-6 rounded-3xl border border-emerald-100 shadow-sm flex-grow">
+            <h3 className="font-bold text-emerald-900 mb-3 flex items-center gap-2 text-sm">
+              <Info size={16} /> সিস্টেম স্ট্যাটাস
+            </h3>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-500">মডেল স্পিড:</span>
+                <span className="text-emerald-600 font-bold uppercase tracking-wider">Flash (Max)</span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-500">ভয়েস সেশন:</span>
+                <span className={`font-bold ${isActive ? 'text-green-500' : 'text-slate-400'}`}>
+                  {isActive ? 'সক্রিয়' : 'নিষ্ক্রিয়'}
+                </span>
               </div>
             </div>
           </div>
         </aside>
 
         {/* Interaction Area */}
-        <section className="flex-grow flex flex-col bg-white rounded-3xl shadow-xl border border-emerald-100 overflow-hidden relative">
+        <section className="flex-grow flex flex-col bg-white rounded-[2rem] shadow-2xl border border-emerald-50 overflow-hidden">
           <div ref={transcriptScrollRef} className="flex-grow overflow-y-auto p-6 custom-scrollbar bg-[url('https://www.transparenttextures.com/patterns/paper-fibers.png')]">
             {messages.map((m) => (
               <TranscriptItem key={m.id} role={m.role} text={m.text} imageUrl={m.imageUrl} />
             ))}
-            {currentInput && (
-              <div className="flex justify-end mb-6">
-                <div className="max-w-[85%] bg-emerald-700 p-4 rounded-2xl border-r-4 border-emerald-900 italic text-white opacity-80 shadow-md">
-                  <p className="text-[10px] font-bold mb-1 uppercase tracking-widest text-emerald-100">শুনছি...</p>
-                  <p>{currentInput}</p>
-                </div>
-              </div>
-            )}
             {isSendingText && (
-              <div className="flex justify-start mb-6 animate-pulse">
-                <div className="max-w-[85%] bg-white p-4 rounded-2xl border-l-4 border-amber-600 shadow-sm flex items-center gap-2">
-                  <Loader2 className="animate-spin text-amber-600" size={16} />
-                  <span className="text-slate-900 italic font-medium">স্কলার বিশ্লেষণ করছেন...</span>
+              <div className="flex justify-start mb-6">
+                <div className="bg-white p-4 rounded-2xl border-l-4 border-amber-600 shadow-sm flex items-center gap-3">
+                  <Loader2 className="animate-spin text-amber-600" size={18} />
+                  <span className="text-slate-800 italic text-sm font-medium">স্কলার বিশ্লেষণ করছেন...</span>
                 </div>
               </div>
             )}
           </div>
 
-          <div className="p-4 bg-gradient-to-t from-emerald-50 to-transparent flex flex-col gap-3">
-            {/* Image Preview */}
+          <div className="p-4 bg-emerald-50/50 flex flex-col gap-4">
             {selectedImage && (
-              <div className="relative w-24 h-24 mb-2 rounded-lg border-2 border-emerald-500 overflow-hidden group shadow-lg">
+              <div className="relative w-28 h-28 ml-2 rounded-2xl border-4 border-white shadow-xl overflow-hidden group">
                 <img src={`data:${imageMimeType};base64,${selectedImage}`} alt="Preview" className="w-full h-full object-cover" />
                 <button 
                   onClick={() => setSelectedImage(null)}
-                  className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-80 hover:opacity-100 shadow-sm"
+                  className="absolute top-1 right-1 bg-red-600 text-white p-1 rounded-full shadow-lg"
                 >
                   <X size={12} />
                 </button>
               </div>
             )}
 
-            <form onSubmit={handleSendText} className="flex gap-2 bg-white p-2 rounded-2xl shadow-md border border-emerald-100 items-center">
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isActive || isSendingText}
-                className="text-emerald-600 hover:bg-emerald-50 p-2 rounded-full transition-colors disabled:opacity-50"
-                title="ছবি আপলোড করুন"
-              >
-                <ImagePlus size={24} />
-              </button>
-              <input 
-                type="file" 
-                ref={fileInputRef} 
-                onChange={handleImageSelect} 
-                className="hidden" 
-                accept="image/*" 
-              />
-              <input
-                type="text"
-                value={textInput}
-                onChange={(e) => setTextInput(e.target.value)}
-                placeholder={selectedImage ? "ছবির বিষয়ে গবেষণামূলক প্রশ্ন লিখুন..." : "আপনার প্রশ্নটি এখানে লিখুন..."}
-                disabled={isActive || isSendingText}
-                className="flex-grow px-2 py-3 outline-none text-emerald-900 bg-transparent disabled:opacity-50 font-medium"
-              />
-              <button
-                type="submit"
-                disabled={(!textInput.trim() && !selectedImage) || isActive || isSendingText}
-                className="bg-emerald-700 hover:bg-emerald-800 text-white p-3 rounded-xl transition-all disabled:opacity-50 shadow-sm"
-              >
-                <Send size={20} />
-              </button>
-            </form>
+            <div className="flex flex-col gap-3">
+              <form onSubmit={handleSendText} className="flex gap-2 bg-white p-2 rounded-2xl shadow-lg border border-emerald-100 items-center">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isActive || isSendingText}
+                  className="text-emerald-700 hover:bg-emerald-50 p-3 rounded-xl transition-all disabled:opacity-30"
+                >
+                  <ImagePlus size={24} />
+                </button>
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setImageMimeType(file.type);
+                      const reader = new FileReader();
+                      reader.onload = (ev) => setSelectedImage((ev.target?.result as string).split(',')[1]);
+                      reader.readAsDataURL(file);
+                    }
+                  }} 
+                  className="hidden" 
+                  accept="image/*" 
+                />
+                <input
+                  type="text"
+                  value={textInput}
+                  onChange={(e) => setTextInput(e.target.value)}
+                  placeholder="আপনার গবেষণার প্রশ্নটি এখানে পেশ করুন..."
+                  disabled={isActive || isSendingText}
+                  className="flex-grow px-3 py-3 outline-none text-emerald-950 font-medium placeholder:text-slate-400 bg-transparent"
+                />
+                <button
+                  type="submit"
+                  disabled={(!textInput.trim() && !selectedImage) || isActive || isSendingText}
+                  className="bg-emerald-800 hover:bg-emerald-900 text-white p-4 rounded-xl transition-all disabled:bg-slate-300 shadow-md"
+                >
+                  <Send size={20} />
+                </button>
+              </form>
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
+              <div className="flex items-center justify-between px-2">
                 <button
                   onClick={isActive ? handleStop : handleStart}
                   disabled={isConnecting || isSendingText}
-                  className={`flex items-center justify-center w-12 h-12 md:w-14 md:h-14 rounded-full shadow-lg transition-all ${isActive ? 'bg-red-500 ring-4 ring-red-100' : 'bg-emerald-700 ring-4 ring-emerald-100'}`}
+                  className={`flex items-center gap-3 px-6 py-3 rounded-full shadow-lg transition-all transform active:scale-95 ${isActive ? 'bg-red-600 text-white ring-4 ring-red-100' : 'bg-emerald-800 text-white ring-4 ring-emerald-50'}`}
                 >
-                  {isActive ? <MicOff size={20} className="text-white" /> : <Mic size={20} className="text-white" />}
+                  {isActive ? <MicOff size={20} /> : <Mic size={20} />}
+                  <span className="text-sm font-bold uppercase tracking-widest">
+                    {isActive ? 'ভয়েস বন্ধ' : 'ভয়েস মোড'}
+                  </span>
                 </button>
-                <div className="flex flex-col">
-                  <p className="text-emerald-900 font-bold text-xs uppercase tracking-tight">
-                    {isActive ? 'ভয়েস মোড সক্রিয়' : 'ভয়েস মোড শুরু করুন'}
-                  </p>
-                  <p className="text-[9px] text-emerald-600 uppercase tracking-widest font-bold">
-                    {isActive ? 'স্কলার মনোযোগ দিয়ে শুনছেন' : 'বাটন চেপে সরাসরি কথা বলুন'}
-                  </p>
+                <div className="text-[10px] text-emerald-800/60 font-black uppercase tracking-[0.3em] flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${isActive ? 'bg-green-500 animate-ping' : 'bg-slate-300'}`}></div>
+                  Scholar AI v4.0 Stable
                 </div>
-              </div>
-              <div className="hidden sm:block text-[9px] text-emerald-400 font-bold tracking-widest uppercase">
-                Academic Intelligence v3.0
               </div>
             </div>
 
-            {error && <div className="text-red-600 bg-red-50 px-4 py-2 rounded-xl border border-red-200 text-xs text-center font-bold flex items-center justify-center gap-2 shadow-sm">
-                <AlertCircle size={14} /> {error}
-            </div>}
+            {error && (
+              <div className="mx-2 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs font-bold text-center flex items-center justify-center gap-2">
+                <AlertTriangle size={14} /> {error}
+              </div>
+            )}
           </div>
         </section>
       </main>
-      <footer className="p-2 text-center text-[10px] text-emerald-800 opacity-60 font-medium uppercase tracking-widest">
-        © {new Date().getFullYear()} Graphico Global - All Knowledge is for Humanity.
+      <footer className="p-3 text-center text-[10px] text-emerald-900/40 font-bold uppercase tracking-[0.4em]">
+        © {new Date().getFullYear()} Graphico Global - Academic Excellence
       </footer>
     </div>
   );
