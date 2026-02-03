@@ -27,11 +27,11 @@ const TranscriptItem: React.FC<TranscriptItemProps> = ({ role, text, imageUrl })
       const parts = processedLine.split(arabicRegex);
       
       return (
-        <div key={i} className={`mb-2 leading-relaxed ${isBlockquote ? 'border-l-3 border-amber-500 pl-3 py-1.5 bg-amber-50/30 rounded-r-lg italic text-slate-800 my-2 text-sm' : ''} ${line.includes('ধন্যবাদান্তে Graphico Global') ? 'mt-4 border-t border-slate-100 pt-2 text-emerald-800 font-bold text-[10px] italic' : ''}`}>
+        <div key={i} className={`mb-1.5 leading-relaxed ${isBlockquote ? 'border-l-2 border-amber-500 pl-2.5 py-1 bg-amber-50/20 rounded-r-md italic text-slate-800 my-1.5 text-xs md:text-sm' : ''} ${line.includes('ধন্যবাদান্তে Graphico Global') ? 'mt-3 border-t border-slate-100 pt-1.5 text-emerald-800 font-bold text-[9px] italic' : ''}`}>
           {parts.map((part, j) => {
             if (part.match(arabicRegex)) {
               return (
-                <span key={j} className="arabic text-2xl md:text-3xl text-emerald-950 bg-white/60 px-2 py-0.5 rounded-md mx-0.5 leading-loose inline-block border border-amber-100/20 shadow-sm my-1">
+                <span key={j} className="arabic text-xl md:text-2xl text-emerald-950 bg-white/40 px-1.5 py-0.5 rounded-md mx-0.5 leading-loose inline-block border border-amber-100/10 my-0.5">
                   {part}
                 </span>
               );
@@ -53,27 +53,27 @@ const TranscriptItem: React.FC<TranscriptItemProps> = ({ role, text, imageUrl })
   };
 
   return (
-    <div className={`flex w-full mb-3 md:mb-5 ${isModel ? 'justify-start' : 'justify-end'} animate-in fade-in duration-300`}>
-      <div className={`flex max-w-[98%] md:max-w-[85%] gap-2 md:gap-3 ${isModel ? 'flex-row' : 'flex-row-reverse'}`}>
-        <div className={`flex-shrink-0 w-6 h-6 md:w-9 md:h-9 rounded-lg flex items-center justify-center border shadow-sm ${
-          isModel ? 'bg-amber-50 border-amber-400 text-amber-700' : 'bg-emerald-900 border-emerald-950 text-white'
+    <div className={`flex w-full mb-2.5 md:mb-4 ${isModel ? 'justify-start' : 'justify-end'} animate-in fade-in duration-300`}>
+      <div className={`flex max-w-[96%] md:max-w-[85%] gap-1.5 md:gap-3 ${isModel ? 'flex-row' : 'flex-row-reverse'}`}>
+        <div className={`flex-shrink-0 w-6 h-6 md:w-8 md:h-8 rounded-md flex items-center justify-center border shadow-sm ${
+          isModel ? 'bg-amber-50 border-amber-300 text-amber-700' : 'bg-emerald-900 border-emerald-950 text-white'
         }`}>
           {isModel ? <Library size={14} /> : <User size={14} />}
         </div>
-        <div className={`p-3 md:p-5 rounded-xl shadow-lg border ${
+        <div className={`p-2.5 md:p-4 rounded-xl shadow-md border ${
           isModel 
-            ? 'bg-white border-slate-100 border-l-3 border-l-amber-500 rounded-tl-none text-slate-900' 
+            ? 'bg-white border-slate-100 border-l-2 border-l-amber-500 rounded-tl-none text-slate-900' 
             : 'bg-emerald-900 border-emerald-950 text-white rounded-tr-none'
         }`}>
-          <div className={`text-[7px] md:text-[9px] font-black mb-1.5 uppercase tracking-widest flex items-center gap-1 ${isModel ? 'text-amber-700' : 'text-emerald-100'}`}>
+          <div className={`text-[6px] md:text-[8px] font-black mb-1 uppercase tracking-widest flex items-center gap-1 ${isModel ? 'text-amber-700' : 'text-emerald-100'}`}>
             {isModel ? 'Graphico Scholar' : 'Researcher'}
           </div>
           {imageUrl && (
-            <div className="mb-2 rounded-lg overflow-hidden border border-white shadow-sm bg-black/5">
-              <img src={imageUrl} alt="Context" className="max-w-full h-auto object-contain max-h-[200px]" />
+            <div className="mb-1.5 rounded-md overflow-hidden border border-white shadow-sm bg-black/5">
+              <img src={imageUrl} alt="Context" className="max-w-full h-auto object-contain max-h-[150px]" />
             </div>
           )}
-          <div className="text-xs md:text-base font-medium tracking-tight whitespace-pre-wrap">
+          <div className="text-[11px] md:text-sm font-medium tracking-tight whitespace-pre-wrap">
             {renderFormattedText(text)}
           </div>
         </div>

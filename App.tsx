@@ -8,13 +8,13 @@ import { decode, decodeAudioData, createPcmBlob } from './services/audioUtils';
 import { Message } from './types';
 
 const SYSTEM_INSTRUCTION = `
-আপনার নাম "গ্রাফিকো স্কলার", "গ্রাফিকো গ্লোবাল"-এর একটি প্রফেশনাল একাডেমিক এআই। 
-ব্যক্তিত্ব: বিজ্ঞ ও গম্ভীর গবেষক।
+আপনার নাম "গ্রাফিকো স্কলার"। আপনি গ্রাফিকো গ্লোবাল-এর একজন প্রফেশনাল একাডেমিক গবেষক।
+ব্যক্তিত্ব: গম্ভীর, তথ্যবহুল এবং বিজ্ঞ।
 নির্দেশনা:
-১. ফরমেটিং: কোনো হ্যাশট্যাগ (#) ব্যবহার করবেন না। গুরুত্বপূর্ণ তথ্য **বোল্ড** করুন এবং দলীল > ব্লককোট আকারে লিখুন।
-২. আরবি: প্রতিটি আরবি আয়াত বা হাদিস বড় করে লিখুন, তারপর অনুবাদ ও ব্যাখ্যা দিন।
-৩. প্রাসঙ্গিকতা: শুধুমাত্র শিক্ষা ও গবেষণা নিয়ে আলোচনা করুন।
-৪. ইতি টানা: উত্তরের শেষে লিখুন: "ধন্যবাদান্তে Graphico Global"।
+১. কোনো হ্যাশট্যাগ (#) ব্যবহার করবেন না। গুরুত্বপূর্ণ তথ্য **বোল্ড** করুন।
+২. আরবি আয়াত/হাদিস বড় করে লিখুন, তারপর অনুবাদ দিন।
+৩. উত্তর একাডেমিক ও তথ্যনির্ভর হতে হবে।
+৪. শেষ লাইনে লিখুন: "ধন্যবাদান্তে Graphico Global"।
 `;
 
 const App: React.FC = () => {
@@ -43,7 +43,14 @@ const App: React.FC = () => {
   const scriptProcessorRef = useRef<ScriptProcessorNode | null>(null);
   const transcriptScrollRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll logic
+  const getApiKey = () => {
+    try {
+      return process.env.API_KEY || '';
+    } catch (e) {
+      return '';
+    }
+  };
+
   useEffect(() => {
     if (transcriptScrollRef.current) {
       transcriptScrollRef.current.scrollTop = transcriptScrollRef.current.scrollHeight;
@@ -66,9 +73,9 @@ const App: React.FC = () => {
   }, [stopAllAudio]);
 
   const handleStart = async () => {
-    const apiKey = process?.env?.API_KEY;
+    const apiKey = getApiKey();
     if (!apiKey) {
-      setError("API Key configuration error.");
+      setError("API Key কনফিগারেশনে সমস্যা।");
       return;
     }
     try {
@@ -116,23 +123,23 @@ const App: React.FC = () => {
               sourcesRef.current.add(source);
             }
           },
-          onerror: () => { setError("Connection lost."); handleStop(); },
+          onerror: () => { setError("কানেকশন বিচ্ছিন্ন হয়েছে।"); handleStop(); },
           onclose: () => setIsActive(false)
         }
       });
       sessionRef.current = await sessionPromise;
     } catch (err) {
-      setError("Microphone permission denied.");
+      setError("মাইক্রোফোন পারমিশন প্রয়োজন।");
       setIsConnecting(false);
     }
   };
 
   const handleSendText = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    const apiKey = process?.env?.API_KEY;
+    const apiKey = getApiKey();
     if ((!textInput.trim() && !selectedImage) || isSendingText || !apiKey) return;
 
-    const userMsg = textInput.trim() || (selectedImage ? "Analyze this image." : "");
+    const userMsg = textInput.trim() || (selectedImage ? "এই ছবিটি বিশ্লেষণ করুন।" : "");
     const imgData = selectedImage;
     const imgMime = imageMimeType;
     
@@ -157,9 +164,9 @@ const App: React.FC = () => {
                   { role: 'user', parts: imgData ? [{ text: userMsg }, { inlineData: { data: imgData, mimeType: imgMime } }] : [{ text: userMsg }] }],
         config: { systemInstruction: SYSTEM_INSTRUCTION },
       });
-      setMessages(prev => [...prev, { id: `m-${Date.now()}`, role: 'model', text: response.text || "No response.", timestamp: Date.now() }]);
+      setMessages(prev => [...prev, { id: `m-${Date.now()}`, role: 'model', text: response.text || "দুঃখিত, কোনো উত্তর পাওয়া যায়নি।", timestamp: Date.now() }]);
     } catch (err) {
-      setError("Network error. Please try again.");
+      setError("নেটওয়ার্ক সমস্যা। পুনরায় চেষ্টা করুন।");
     } finally {
       setIsSendingText(false);
     }
@@ -169,27 +176,26 @@ const App: React.FC = () => {
     <div className="flex flex-col h-[100dvh] bg-[#fdfaf5] overflow-hidden overscroll-none">
       <Header />
       
-      <main className="flex-1 flex flex-col md:flex-row max-w-7xl mx-auto w-full overflow-hidden p-2 md:p-4 gap-4">
-        {/* Chat Container */}
-        <section className="flex-1 flex flex-col bg-white rounded-2xl shadow-xl border border-emerald-50 overflow-hidden relative">
-          <div ref={transcriptScrollRef} className="flex-1 overflow-y-auto p-3 md:p-6 custom-scrollbar bg-[#fafafa]">
+      <main className="flex-1 flex flex-col max-w-4xl mx-auto w-full overflow-hidden p-1.5 md:p-4 gap-2">
+        <section className="flex-1 flex flex-col bg-white rounded-xl shadow-lg border border-emerald-50 overflow-hidden relative">
+          <div ref={transcriptScrollRef} className="flex-1 overflow-y-auto p-3 md:p-6 custom-scrollbar bg-[#fcfcfc]">
             {messages.map((m) => (
               <TranscriptItem key={m.id} role={m.role} text={m.text} imageUrl={m.imageUrl} />
             ))}
             {isSendingText && (
               <div className="flex justify-start mb-4">
-                <div className="bg-amber-50 p-2 px-4 rounded-full border border-amber-200 shadow-sm flex items-center gap-2">
-                  <Loader2 className="animate-spin text-amber-600" size={14} />
-                  <span className="text-slate-700 italic text-[10px] md:text-xs font-bold uppercase tracking-wider">Scholar Processing...</span>
+                <div className="bg-amber-50 p-1.5 px-3 rounded-full border border-amber-200 shadow-sm flex items-center gap-2">
+                  <Loader2 className="animate-spin text-amber-600" size={12} />
+                  <span className="text-slate-700 italic text-[10px] font-bold uppercase">Scholar Processing...</span>
                 </div>
               </div>
             )}
           </div>
 
-          <div className="p-2 md:p-4 bg-emerald-50/20 border-t border-emerald-100">
-            <div className="flex flex-col gap-2 max-w-3xl mx-auto">
+          <div className="p-2 md:p-4 bg-emerald-50/10 border-t border-emerald-100">
+            <div className="flex flex-col gap-2">
               {selectedImage && (
-                <div className="relative w-14 h-14 rounded-lg border border-emerald-400 shadow-sm overflow-hidden ring-2 ring-white">
+                <div className="relative w-12 h-12 rounded-lg border border-emerald-400 shadow-sm overflow-hidden ring-1 ring-white">
                   <img src={`data:${imageMimeType};base64,${selectedImage}`} alt="Preview" className="w-full h-full object-cover" />
                   <button onClick={() => setSelectedImage(null)} className="absolute top-0 right-0 bg-red-500 text-white p-0.5 rounded-bl-lg">
                     <X size={10} />
@@ -197,7 +203,7 @@ const App: React.FC = () => {
                 </div>
               )}
 
-              <form onSubmit={handleSendText} className="flex gap-1.5 bg-white p-1 rounded-xl shadow-sm border border-emerald-100 items-center">
+              <form onSubmit={handleSendText} className="flex gap-1 bg-white p-0.5 rounded-xl shadow-sm border border-emerald-100 items-center">
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
@@ -227,12 +233,12 @@ const App: React.FC = () => {
                   onChange={(e) => setTextInput(e.target.value)}
                   placeholder="আপনার জিজ্ঞাসা..."
                   disabled={isActive || isSendingText}
-                  className="flex-1 px-1 py-2 outline-none text-emerald-950 font-medium text-sm md:text-base bg-transparent"
+                  className="flex-1 px-1 py-1.5 outline-none text-emerald-950 font-medium text-sm md:text-base bg-transparent"
                 />
                 <button
                   type="submit"
                   disabled={(!textInput.trim() && !selectedImage) || isActive || isSendingText}
-                  className="bg-emerald-800 text-white p-2.5 rounded-lg hover:bg-emerald-900 disabled:bg-slate-300 transition-all"
+                  className="bg-emerald-800 text-white p-2 rounded-lg hover:bg-emerald-900 disabled:bg-slate-300 transition-all"
                 >
                   <Send size={16} />
                 </button>
@@ -242,22 +248,22 @@ const App: React.FC = () => {
                 <button
                   onClick={isActive ? handleStop : handleStart}
                   disabled={isConnecting || isSendingText}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-full shadow-md transition-all active:scale-95 ${isActive ? 'bg-red-600 text-white' : 'bg-emerald-800 text-white'}`}
+                  className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full shadow-md transition-all active:scale-95 ${isActive ? 'bg-red-600 text-white' : 'bg-emerald-800 text-white'}`}
                 >
                   {isActive ? <MicOff size={14} /> : <Mic size={14} />}
-                  <span className="text-[10px] font-bold uppercase tracking-widest">
-                    {isActive ? 'OFF VOICE' : 'VOICE MODE'}
+                  <span className="text-[9px] font-bold uppercase tracking-widest">
+                    {isActive ? 'ভয়েস বন্ধ' : 'ভয়েস মোড'}
                   </span>
                 </button>
-                <div className="text-[8px] text-emerald-900/40 font-bold uppercase tracking-widest flex items-center gap-1">
-                  <BookOpen size={10} /> v5.2 STABLE
+                <div className="text-[7px] text-emerald-900/40 font-bold uppercase tracking-widest flex items-center gap-1">
+                  <BookOpen size={9} /> Graphico Scholar v5.3
                 </div>
               </div>
             </div>
 
             {error && (
-              <div className="mt-1.5 p-1 bg-red-50 text-red-600 rounded-lg text-[9px] font-bold text-center border border-red-100">
-                <AlertCircle size={10} className="inline mr-1" /> {error}
+              <div className="mt-1 p-1 bg-red-50 text-red-600 rounded-lg text-[8px] font-bold text-center border border-red-100">
+                <AlertCircle size={8} className="inline mr-1" /> {error}
               </div>
             )}
           </div>
