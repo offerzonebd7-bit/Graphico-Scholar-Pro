@@ -8,26 +8,19 @@ import { decode, decodeAudioData, createPcmBlob } from './services/audioUtils';
 import { Message } from './types';
 
 const SYSTEM_INSTRUCTION = `
-আপনার নাম "গ্রাফিকো স্কলার", যা "গ্রাফিকো গ্লোবাল"-এর একটি বিশেষ শিক্ষা ও গবেষণা এআই। আপনার লক্ষ্য হলো পৃথিবীর সকল জ্ঞানপিপাসু শিক্ষার্থীর জন্য একজন "পরম বন্ধু" হিসেবে কাজ করা। 
+আপনার নাম "গ্রাফিকো স্কলার", যা "গ্রাফিকো গ্লোবাল"-এর একটি বিশেষ শিক্ষা ও গবেষণা এআই। আপনার লক্ষ্য হলো একজন গম্ভীর ও দক্ষ গবেষকের মতো তথ্য প্রদান করা।
 
-কঠোরভাবে পালনীয় নিয়মাবলী:
-১. জ্ঞানের পরিধি (Academic Mastery): আপনি পৃথিবীর সকল প্রকার বৈধ এবং একাডেমিক বিষয়ে বিশেষজ্ঞ। এর মধ্যে রয়েছে:
-   - ইসলামি শরীয়াহ: কুরআন, হাদিস, ফিকহ এবং ইতিহাস।
-   - বিজ্ঞান ও প্রযুক্তি: পদার্থবিজ্ঞান (Physics), রসায়ন (Chemistry), জীববিজ্ঞান (Biology), গণিত (Math) এবং মহাকাশ বিজ্ঞান।
-   - মানবিক শাখা: সাহিত্য, দর্শন, অর্থনীতি এবং সমাজবিজ্ঞান।
-   আপনি যেকোনো জটিল বৈজ্ঞানিক সূত্র বা গাণিতিক সমস্যার সহজ ব্যাখ্যা দিতে সক্ষম।
-
-২. সীমাবদ্ধতা (Strict Filtering): শিক্ষা, গবেষণা এবং জ্ঞানচর্চার বাইরের কোনো আজেবাজে, অনৈতিক, অশ্লীল বা সময় নষ্টকারী প্রশ্নের উত্তর আপনি দিবেন না। কেউ এ ধরনের কথা বললে তাকে বলবেন: "গ্রাফিকো গ্লোবাল শুধুমাত্র জ্ঞান ও শিক্ষা সংক্রান্ত কাজে আপনাকে সহায়তা করে।"
-
-৩. ভাষা ও শৈলী: সর্বদা প্রাঞ্জল বাংলায় কথা বলুন। টোন হবে একাডেমিক এবং অত্যন্ত মার্জিত। 
-
-৪. ধারাবাহিকতা (Contextual Intelligence): ব্যবহারকারীর আগের আলোচনা মনে রাখুন। যদি তিনি কোনো নির্দিষ্ট বিষয় নিয়ে কথা বলেন এবং পরে সংক্ষিপ্ত প্রশ্ন করেন, তবে আগের প্রসঙ্গের আলোকে উত্তর দিন।
-
-৫. চিহ্ন বর্জন: উত্তরের ভেতরে অতিরিক্ত হ্যাশ (#), স্টার (*) বা ড্যাশ (-) ব্যবহার করবেন না। স্বাভাবিক প্যারাগ্রাফ এবং প্রয়োজনীয় ক্ষেত্রে নম্বর লিস্ট ব্যবহার করুন। একদম ক্লিন প্রফেশনাল টেক্সট নিশ্চিত করুন।
-
-৬. ইতি টানা: প্রতিটি উত্তরের একদম শেষে একটি নতুন লাইনে লিখুন: "ধন্যবাদান্তে Graphico Global"।
-
-৭. সেশন শুরু: সেশনের শুরুতে একবারই অভিবাদন জানান।
+গবেষণালব্ধ ও ফরমেটিং নির্দেশনাবলী:
+১. ব্যক্তিত্ব: আপনার উত্তরের ধরন হবে একজন বিজ্ঞ গবেষকের মতো—গম্ভীর, তথ্যবহুল এবং অত্যন্ত গোছানো। অপ্রয়োজনীয় কথা বা আবেগ বর্জন করুন।
+২. আরবি ও অনুবাদ: যখনই কোনো আয়াত, হাদিস বা আরবি শব্দ লিখবেন, তা অবশ্যই মূল আরবি হরফে লিখবেন। এরপর সেটির বাংলা অনুবাদ এবং একাডেমিক ব্যাখ্যা দেবেন।
+৩. প্রফেশনাল ফরমেটিং: 
+   - উত্তরের ভেতর কোনো হ্যাশট্যাগ (#) বা অপ্রয়োজনীয় চিহ্ন ব্যবহার করবেন না। 
+   - গুরুত্বপূর্ণ অংশগুলোকে বোল্ড (**text**) করুন। 
+   - বিশেষ উদ্ধৃতি বা মূল পয়েন্টের জন্য ব্লককোট (> text) ব্যবহার করুন।
+৪. প্রাসঙ্গিকতা: ব্যবহারকারী যতটুকু জানতে চাইবেন, ঠিক ততটুকুই গভীরভাবে ব্যাখ্যা করুন। আগের আলোচনার প্রসঙ্গ (Context) সর্বদা মনে রাখুন।
+৫. সীমাবদ্ধতা: শুধুমাত্র একাডেমিক ও শিক্ষা সংক্রান্ত বিষয়ে সহায়তা করুন। অনৈতিক কিছু জিজ্ঞেস করলে বলবেন: "গ্রাফিকো গ্লোবাল শুধুমাত্র জ্ঞান ও শিক্ষা সংক্রান্ত কাজে আপনাকে সহায়তা করে।"
+৬. সেশন শুরু: শুরুতে একবার সালাম দিয়ে অভিনন্দন জানান।
+৭. ইতি টানা: প্রতিটি উত্তরের একদম শেষে একটি নতুন লাইনে লিখুন: "ধন্যবাদান্তে Graphico Global"।
 `;
 
 const App: React.FC = () => {
@@ -208,8 +201,7 @@ const App: React.FC = () => {
 
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      // Construct history context for current user message
-      const history = messages.slice(-6).map(m => ({
+      const history = messages.slice(-10).map(m => ({
         role: m.role === 'model' ? 'model' : 'user',
         parts: [{ text: m.text }]
       }));
@@ -247,14 +239,13 @@ const App: React.FC = () => {
         <aside className="w-full md:w-80 flex flex-col gap-4">
           <div className="bg-white p-5 rounded-2xl shadow-sm border border-emerald-100">
             <h2 className="flex items-center gap-2 text-emerald-900 font-bold mb-3 border-b pb-2">
-              <BookOpenText size={18} /> বিশেষজ্ঞ বিষয়সমূহ
+              <BookOpenText size={18} /> গবেষণার ক্ষেত্রসমূহ
             </h2>
             <ul className="space-y-2 text-sm text-emerald-800 font-medium">
               <li className="flex items-center gap-2"><span className="w-2 h-2 bg-amber-500 rounded-full"></span> ইসলামি শরীয়াহ ও ইতিহাস</li>
               <li className="flex items-center gap-2"><span className="w-2 h-2 bg-amber-500 rounded-full"></span> বিজ্ঞান ও প্রযুক্তি (ফিজিক্স, ম্যাথ)</li>
               <li className="flex items-center gap-2"><span className="w-2 h-2 bg-amber-500 rounded-full"></span> মহাকাশ বিজ্ঞান ও উদ্ভাবন</li>
               <li className="flex items-center gap-2"><span className="w-2 h-2 bg-amber-500 rounded-full"></span> সাহিত্য, দর্শন ও মানবিক শাখা</li>
-              <li className="flex items-center gap-2"><span className="w-2 h-2 bg-amber-500 rounded-full"></span> জটিল একাডেমিক সমস্যার সমাধান</li>
             </ul>
           </div>
           <div className="bg-emerald-50 p-5 rounded-2xl border border-emerald-100 flex-grow">
@@ -262,7 +253,7 @@ const App: React.FC = () => {
               <Info size={18} /> নির্দেশিকা
             </h2>
             <p className="text-sm text-emerald-800 leading-relaxed mb-4">
-              Graphico Scholar আপনার একাডেমিক "পরম বন্ধু"। যেকোনো শিক্ষা বা গবেষণা সংক্রান্ত বিষয়ে প্রশ্ন করুন। অনৈতিক বা অপ্রাসঙ্গিক প্রশ্ন এড়িয়ে চলুন।
+              Graphico Scholar একজন গম্ভীর গবেষকের ন্যায় নির্ভুল ও তথ্যবহুল উত্তর প্রদান করে। ক্লিন ও প্রফেশনাল একাডেমিক সহায়তার জন্য প্রশ্নটি টাইপ করুন।
             </p>
             <div className="bg-white p-3 rounded-lg border border-emerald-200 shadow-sm">
               <p className="text-xs text-emerald-600 font-semibold mb-1">সিস্টেম স্ট্যাটাস:</p>
@@ -283,7 +274,7 @@ const App: React.FC = () => {
             {currentInput && (
               <div className="flex justify-end mb-6">
                 <div className="max-w-[85%] bg-emerald-700 p-4 rounded-2xl border-r-4 border-emerald-900 italic text-white opacity-80 shadow-md">
-                  <p className="text-[10px] font-bold mb-1 uppercase tracking-widest text-emerald-100">গবেষকের কণ্ঠস্বর...</p>
+                  <p className="text-[10px] font-bold mb-1 uppercase tracking-widest text-emerald-100">আপনার কণ্ঠস্বর...</p>
                   <p>{currentInput}</p>
                 </div>
               </div>
@@ -292,7 +283,7 @@ const App: React.FC = () => {
               <div className="flex justify-start mb-6 animate-pulse">
                 <div className="max-w-[85%] bg-white p-4 rounded-2xl border-l-4 border-amber-600 shadow-sm flex items-center gap-2">
                   <Loader2 className="animate-spin text-amber-600" size={16} />
-                  <span className="text-slate-900 italic font-medium">স্কলার বিশ্লেষণ করছেন...</span>
+                  <span className="text-slate-900 italic font-medium">গবেষক বিশ্লেষণ করছেন...</span>
                 </div>
               </div>
             )}
@@ -333,7 +324,7 @@ const App: React.FC = () => {
                 type="text"
                 value={textInput}
                 onChange={(e) => setTextInput(e.target.value)}
-                placeholder={selectedImage ? "ছবির সাথে কোনো প্রশ্ন থাকলে লিখুন..." : "এখানে আপনার প্রশ্নটি লিখুন..."}
+                placeholder={selectedImage ? "ছবির বিষয়ে গবেষণামূলক প্রশ্ন লিখুন..." : "আপনার গবেষণার প্রশ্নটি এখানে লিখুন..."}
                 disabled={isActive || isSendingText}
                 className="flex-grow px-2 py-3 outline-none text-emerald-900 bg-transparent disabled:opacity-50 font-medium"
               />
@@ -357,19 +348,11 @@ const App: React.FC = () => {
                 </button>
                 <div className="flex flex-col">
                   <p className="text-emerald-900 font-bold text-xs">
-                    {isActive ? 'ভয়েস মোড সক্রিয়' : 'ভয়েস মোড শুরু করুন'}
+                    {isActive ? 'ভয়েস সেশন সক্রিয়' : 'ভয়েস সেশন শুরু'}
                   </p>
                   <p className="text-[9px] text-emerald-600 uppercase tracking-wider font-semibold">
-                    {isActive ? 'স্কলার শুনছেন' : 'বাটনটি চেপে কথা বলুন'}
+                    {isActive ? 'স্কলার মনোযোগ দিয়ে শুনছেন' : 'বাটন চেপে কথা বলুন'}
                   </p>
-                </div>
-              </div>
-              <div className="hidden sm:flex gap-2">
-                <div className="flex items-center gap-1 text-[8px] uppercase font-bold text-emerald-500 tracking-widest bg-white px-3 py-1 rounded-full border border-emerald-100 shadow-sm">
-                  Scholarly Intelligence
-                </div>
-                <div className="flex items-center gap-1 text-[8px] uppercase font-bold text-amber-500 tracking-widest bg-white px-3 py-1 rounded-full border border-amber-100 shadow-sm">
-                  Academic Standard
                 </div>
               </div>
             </div>
